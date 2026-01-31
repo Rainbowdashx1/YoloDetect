@@ -1,10 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
-using YoloPerson.Nvidia;
-using YoloPerson.PreProcess;
-using YoloPerson.VideoSources;
+using YoloDetect.Nvidia;
+using YoloDetect.PreProcess;
+using YoloDetect.VideoSources;
 
-namespace YoloPerson.VideoCapture
+namespace YoloDetect.VideoCapture
 {
     internal class Capture
     {

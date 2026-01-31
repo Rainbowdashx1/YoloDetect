@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace YoloPerson.VideoSources
+namespace YoloDetect.VideoSources
 {
     internal static class FFmpegHelper
     {

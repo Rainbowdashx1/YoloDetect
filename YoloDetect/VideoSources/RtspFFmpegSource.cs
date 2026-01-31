@@ -2,7 +2,7 @@ using OpenCvSharp;
 using System.Diagnostics;
 using System.Text;
 
-namespace YoloPerson.VideoSources
+namespace YoloDetect.VideoSources
 {
     internal class RtspFFmpegSource : IVideoSource
     {

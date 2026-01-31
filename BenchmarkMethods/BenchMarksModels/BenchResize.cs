@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using YoloPerson.Nvidia;
+using YoloDetect.Nvidia;
 
 namespace BenchmarkMethods.BenchMarksModels
 {

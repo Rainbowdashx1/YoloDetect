@@ -1,7 +1,7 @@
 using SharpCompress.Archives;
 using SharpCompress.Common;
 
-namespace YoloPerson.VideoSources
+namespace YoloDetect.VideoSources
 {
     internal static class FFmpegInstaller
     {

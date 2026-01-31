@@ -1,13 +1,18 @@
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Order;
 using OpenCvSharp;
-using YoloPerson.VideoCapture;
+using YoloDetect.VideoCapture;
 
 namespace BenchmarkMethods.BenchMarksModels
 {
     [MemoryDiagnoser]
+    [ThreadingDiagnoser]
+    [ExceptionDiagnoser]
     [Orderer(SummaryOrderPolicy.FastestToSlowest)]
     [RankColumn]
+    [MinColumn, MaxColumn, Q1Column, Q3Column]
+    [SimpleJob(RunStrategy.Throughput, warmupCount: 5, iterationCount: 15, invocationCount: 100)]
     public class BenchLetterbox
     {
         private Mat testMat1080p;
@@ -57,7 +62,12 @@ namespace BenchmarkMethods.BenchMarksModels
         {
             processFrame.LetterboxOptimized(testMat1080p, letterboxBuffer, TargetWidth, TargetHeight, out _, out _, out _);
         }
-
+        [Benchmark]
+        [BenchmarkCategory("1080p")]
+        public void OptimizedStruct_1080p()
+        {
+            var transform = processFrame.LetterboxOptimized(testMat1080p, letterboxBuffer, TargetWidth, TargetHeight);
+        }
         // ============ Tests 720p ============
         [Benchmark]
         [BenchmarkCategory("720p")]
@@ -73,6 +83,13 @@ namespace BenchmarkMethods.BenchMarksModels
             processFrame.LetterboxOptimized(testMat720p, letterboxBuffer, TargetWidth, TargetHeight, out _, out _, out _);
         }
 
+        [Benchmark]
+        [BenchmarkCategory("720p")]
+        public void OptimizedStruct_720p()
+        {
+            var transform = processFrame.LetterboxOptimized(testMat720p, letterboxBuffer, TargetWidth, TargetHeight);
+        }
+
         // ============ Tests 4K ============
         [Benchmark]
         [BenchmarkCategory("4K")]
@@ -86,6 +103,13 @@ namespace BenchmarkMethods.BenchMarksModels
         public void Optimized_4K()
         {
             processFrame.LetterboxOptimized(testMat4K, letterboxBuffer, TargetWidth, TargetHeight, out _, out _, out _);
+        }
+
+        [Benchmark]
+        [BenchmarkCategory("4K")]
+        public void OptimizedStruct_4K()
+        {
+            var transform = processFrame.LetterboxOptimized(testMat4K, letterboxBuffer, TargetWidth, TargetHeight);
         }
     }
 }

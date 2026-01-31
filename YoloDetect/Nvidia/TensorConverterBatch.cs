@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace YoloPerson.Nvidia
+namespace YoloDetect.Nvidia
 {
     /// <summary>
     /// Conversión de Mat a Tensor para batch de 2 imágenes.
