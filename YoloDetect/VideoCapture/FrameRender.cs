@@ -1,7 +1,7 @@
 ﻿using OpenCvSharp;
-using YoloPerson.PreProcess;
+using YoloDetect.PreProcess;
 
-namespace YoloPerson.VideoCapture
+namespace YoloDetect.VideoCapture
 {
     internal class FrameRender
     {

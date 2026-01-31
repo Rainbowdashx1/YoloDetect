@@ -1,6 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime.Tensors;
 
-namespace YoloPerson.PreProcess
+namespace YoloDetect.PreProcess
 {
     public class Preprocessed
     {

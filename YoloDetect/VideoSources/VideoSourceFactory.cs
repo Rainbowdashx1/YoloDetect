@@ -1,4 +1,4 @@
-namespace YoloPerson.VideoSources
+namespace YoloDetect.VideoSources
 {
     internal enum VideoSourceType
     {

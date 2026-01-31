@@ -1,18 +1,32 @@
 ﻿using OpenCvSharp;
 
-namespace YoloPerson.VideoCapture
+namespace YoloDetect.VideoCapture
 {
     public class ProcessFrame
     {
-        // Buffer reutilizable para evitar allocaciones repetidas (usado en método optimizado)
+        // Buffer reutilizable para evitar allocaciones repetidas
         private Mat? _resizedBuffer;
         private Size _lastResizedSize;
-
+        public record struct FrameTransform(
+            int PadX,
+            int PadY,
+            int padRight,
+            int padBottom,
+            int NewW,
+            int NewH,
+            Size newSize,
+            float? Ratio = null
+        )
+        {
+            public bool IsValid() => Ratio.HasValue;
+        };
+        FrameTransform Values = new FrameTransform();
         /// <summary>
         /// Método original de Letterbox
         /// </summary>
         public void Letterbox(Mat src, Mat dst, int dstW, int dstH, out float r, out int padX, out int padY)
         {
+
             int srcW = src.Width;
             int srcH = src.Height;
 
@@ -33,6 +47,32 @@ namespace YoloPerson.VideoCapture
             resized.CopyTo(new Mat(dst, roi));
             
             resized.Dispose();
+        }
+        /// <summary>
+        /// Letterbox optimizado usando CopyMakeBorder + FrameTransform + buffer reutilizable
+        /// </summary>
+        public FrameTransform LetterboxOptimized(Mat src, Mat dst, int dstW, int dstH)
+        {
+            FrameTransform cal = CalculateLetterboxValues(src, dstW, dstH);
+
+            if (_resizedBuffer == null || _lastResizedSize != cal.newSize)
+            {
+                _resizedBuffer?.Dispose();
+                _resizedBuffer = new Mat();
+                _lastResizedSize = cal.newSize;
+            }
+
+            Cv2.Resize(src, _resizedBuffer, cal.newSize, 0, 0, InterpolationFlags.Linear);
+            Cv2.CopyMakeBorder(
+                _resizedBuffer, 
+                dst,
+                cal.PadY, cal.padBottom,
+                cal.PadX, cal.padRight, 
+                BorderTypes.Constant, 
+                new Scalar(114, 114, 114)
+            );
+
+            return cal;
         }
 
         /// <summary>
@@ -67,15 +107,46 @@ namespace YoloPerson.VideoCapture
 
             Cv2.Resize(src, _resizedBuffer, newSize, 0, 0, InterpolationFlags.Linear);
             Cv2.CopyMakeBorder(
-                _resizedBuffer, 
-                dst, 
-                padY, padBottom, 
-                padX, padRight, 
-                BorderTypes.Constant, 
+                _resizedBuffer,
+                dst,
+                padY, padBottom,
+                padX, padRight,
+                BorderTypes.Constant,
                 new Scalar(114, 114, 114)
             );
         }
 
+        private FrameTransform CalculateLetterboxValues(Mat src, int dstW, int dstH)
+        {
+            if (Values.IsValid()) 
+            {
+                return Values;
+            }
+
+            float r;
+            int padX;
+            int padY;
+
+            int srcW = src.Width;
+            int srcH = src.Height;
+
+            float rW = dstW / (float)srcW;
+            float rH = dstH / (float)srcH;
+            r = rW < rH ? rW : rH;
+
+            int newW = (int)(srcW * r);
+            int newH = (int)(srcH * r);
+
+            int totalPadX = dstW - newW;
+            int totalPadY = dstH - newH;
+            padX = totalPadX >> 1;
+            padY = totalPadY >> 1;
+            int padRight = totalPadX - padX;
+            int padBottom = totalPadY - padY;
+
+            Values = new FrameTransform(padX, padY, padRight, padBottom ,newW ,newH, new Size(newW, newH), r);
+            return Values;
+        }
         /// <summary>
         /// Liberar recursos del buffer
         /// </summary>

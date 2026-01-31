@@ -1,6 +1,6 @@
 using OpenCvSharp;
 
-namespace YoloPerson.VideoSources
+namespace YoloDetect.VideoSources
 {
     internal class FileVideoSource : IVideoSource
     {

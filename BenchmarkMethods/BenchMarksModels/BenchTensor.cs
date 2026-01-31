@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
-using YoloPerson.Nvidia;
+using YoloDetect.Nvidia;
 
 namespace BenchmarkMethods.BenchMarksModels
 {
