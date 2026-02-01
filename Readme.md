@@ -57,6 +57,14 @@
 
 # Changelog
 
+## Version 1.0.5
+
+### Change namespace
+- The namespaces of YoloPerson are changed to YoloDetect.
+
+### Add BenchMark
+- A new benchmark was added for the letterbox, which turned out to be no better than the current one.
+
 ## Version 1.0.4
 
 ### Project rename: YOLOPerson → YoloDetect
