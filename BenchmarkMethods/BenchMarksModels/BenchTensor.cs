@@ -78,7 +78,6 @@ namespace BenchmarkMethods.BenchMarksModels
             return TensorConverterSingle.MatToTensorHybrid(clone);
         }
 
-
         #endregion
 
         #region Without Clone (Real-world scenario where Mat is consumed)
@@ -130,6 +129,15 @@ namespace BenchmarkMethods.BenchMarksModels
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
             TensorConverterSingle.MatToTensorHybrid(mat, _reusableTensor);
+            mat.Dispose();
+            return _reusableTensor;
+        }
+        [Benchmark]
+        [BenchmarkCategory("NoClone")]
+        public DenseTensor<float> HybridNoParallel_NoClone()
+        {
+            var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
+            TensorConverterSingle.MatToTensorHybridNoParallel(mat, _reusableTensor);
             mat.Dispose();
             return _reusableTensor;
         }

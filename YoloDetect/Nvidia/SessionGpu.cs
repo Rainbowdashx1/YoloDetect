@@ -1,12 +1,6 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-
 
 namespace YoloDetect.Nvidia
 {
@@ -71,7 +65,7 @@ namespace YoloDetect.Nvidia
         }
         public Tensor<float>? SessionRun(Mat matframeLetterbox) 
         {
-            TensorConverterSingle.MatToTensorHybrid(matframeLetterbox, _reusableTensor);
+            TensorConverterSingle.MatToTensorHybridNoParallel(matframeLetterbox, _reusableTensor);
             var results = session.Run(_reusableInputsSingle);
             return results.First(r => r.Name == "output0").AsTensor<float>();
         }
