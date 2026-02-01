@@ -57,6 +57,14 @@
 
 # Changelog
 
+## Version 1.0.6
+
+### Add MatToTensorHybridNoParallel
+- A new method, MatToTensorHybridNoParallel, has been added.
+
+### Add BenchMark
+- BenchMark of the new method is added.
+
 ## Version 1.0.5
 
 ### Change namespace
