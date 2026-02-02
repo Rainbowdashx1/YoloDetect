@@ -150,7 +150,44 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
+        public void runWithModel2BatchYolo26()
+        {
+            using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
+            using var videoWriter = CreateVideoWriter(videoSource);
 
+            try
+            {
+                Mat frame = new Mat();
+                int currentFrame = 0;
+                int skippedFrames = 0;
+
+                while (videoSource.Read(frame))
+                {
+                    currentFrame++;
+                    if (frame.Empty())
+                    {
+                        skippedFrames++;
+                        continue;
+                    }
+
+                    var detections = ProcessFrameBatchOverLapYolo26(frame);
+                    frameRender.DrawDetections(frame, detections);
+
+                    videoWriter?.Write(frame);
+                    Cv2.ImShow("Cuadro Actual", frame);
+
+                    if (Cv2.WaitKey(1) >= 0)
+                        break;
+                }
+
+                Console.WriteLine($"Frames procesados: {currentFrame}, Frames saltados: {skippedFrames}");
+                Cv2.DestroyAllWindows();
+            }
+            finally
+            {
+                videoWriter?.Dispose();
+            }
+        }
         private OpenCvSharp.VideoWriter? CreateVideoWriter(IVideoSource source)
         {
             if (videoProcessPath == null)
@@ -217,6 +254,52 @@ namespace YoloDetect.VideoCapture
                 padX2, padY2, r2
             );
   
+            for (int i = 0; i < rightDetections.Count; i++)
+            {
+                var det = rightDetections[i];
+                rightDetections[i] = new Detection(
+                    det.X1 + rightStart,
+                    det.Y1,
+                    det.X2 + rightStart,
+                    det.Y2,
+                    det.Score,
+                    det.ClassId
+                );
+            }
+            // Combinar y eliminar duplicados en la zona solapada
+            var allDetections = MergeOverlappingDetections(
+                leftDetections,
+                rightDetections,
+                halfWidth - overlapPixels,
+                halfWidth + overlapPixels
+            );
+            return allDetections;
+        }
+        private List<Detection> ProcessFrameBatchOverLapYolo26(Mat frame)
+        {
+            int overlapPixels = 150; // Solapamiento configurable
+            int halfWidth = frame.Width / 2;
+
+            int leftWidth = halfWidth + overlapPixels;
+            int rightStart = halfWidth - overlapPixels;
+            int rightWidth = frame.Width - rightStart;
+
+            using Mat leftRegion = new Mat(frame, new Rect(0, 0, leftWidth, frame.Height));
+            using Mat rightRegion = new Mat(frame, new Rect(rightStart, 0, rightWidth, frame.Height));
+
+            float r1, r2;
+            int padX1, padY1, padX2, padY2;
+
+            process.LetterboxOptimized(leftRegion, leftLetterboxBuffer, 640, 640, out r1, out padX1, out padY1);
+            process.LetterboxOptimized(rightRegion, rightLetterboxBuffer, 640, 640, out r2, out padX2, out padY2);
+
+            Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
+            var (leftDetections, rightDetections) = prePro.PreproccessedOutputBatchOptimizedYolov26(
+                outputSession,
+                padX1, padY1, r1,
+                padX2, padY2, r2
+            );
+
             for (int i = 0; i < rightDetections.Count; i++)
             {
                 var det = rightDetections[i];

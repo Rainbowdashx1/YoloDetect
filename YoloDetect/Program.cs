@@ -134,12 +134,14 @@ internal class Program
 
         Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, sourceType);
 
-        if (batch)
+        if (batch && Yolo26 == false)
             Cap.runWithModel2Batch();
         else if (!Yolo26)
             Cap.runWithModel1Batch();
-        else if (Yolo26)
+        else if (Yolo26 && opcion != "6")
             Cap.runWithModel1BatchYolo26();
+        else if (Yolo26 && opcion == "6")
+            Cap.runWithModel2BatchYolo26();
     }
     private static void usingYolo11m()
     {
