@@ -67,8 +67,10 @@ namespace YoloDetect.PreProcess
                 NonMaxSuppression(_Detections, nonMaxSuppressionThreshold);
             }
         }
-        public (List<Detection> leftDetections, List<Detection> rightDetections) PreproccessedOutputBatchOptimized(
+        public void PreproccessedOutputBatchOptimized(
         Tensor<float>? output0,
+        List<Detection> DetectionRight,
+        List<Detection> DetectionLeft,
         int padX1, int padY1, float r1,
         int padX2, int padY2, float r2,
         bool nonMaxSuppression = true,
@@ -76,14 +78,11 @@ namespace YoloDetect.PreProcess
         float thresHold = 0.25f)
         {
             if (output0 is null)
-                return (new List<Detection>(), new List<Detection>());
+                return;
 
             var dims = output0.Dimensions;
             int numPreds = dims[2];
             int maxClsIdx = 4;
-
-            var detectionsLeft = new List<Detection>(numPreds / 10);
-            var detectionsRight = new List<Detection>(numPreds / 10);
 
             // Pre-calcular valores constantes
             float invR1 = 1f / r1;
@@ -101,7 +100,7 @@ namespace YoloDetect.PreProcess
                     float halfW = output0[0, 2, i] * 0.5f;
                     float halfH = output0[0, 3, i] * 0.5f;
 
-                    detectionsLeft.Add(new Detection(
+                    DetectionLeft.Add(new Detection(
                         (xCenter - halfW - padX1) * invR1,
                         (yCenter - halfH - padY1) * invR1,
                         (xCenter + halfW - padX1) * invR1,
@@ -120,7 +119,7 @@ namespace YoloDetect.PreProcess
                     float halfW = output0[1, 2, i] * 0.5f;
                     float halfH = output0[1, 3, i] * 0.5f;
 
-                    detectionsRight.Add(new Detection(
+                    DetectionRight.Add(new Detection(
                         (xCenter - halfW - padX2) * invR2,
                         (yCenter - halfH - padY2) * invR2,
                         (xCenter + halfW - padX2) * invR2,
@@ -133,11 +132,9 @@ namespace YoloDetect.PreProcess
 
             if (nonMaxSuppression)
             {
-                NonMaxSuppression(detectionsLeft, nonMaxSuppressionThreshold);
-                NonMaxSuppression(detectionsRight, nonMaxSuppressionThreshold);
+                NonMaxSuppression(DetectionLeft, nonMaxSuppressionThreshold);
+                NonMaxSuppression(DetectionRight, nonMaxSuppressionThreshold);
             }
-
-            return (detectionsLeft, detectionsRight);
         }
         /// <summary>
         /// Post-procesamiento para YOLOv26
@@ -194,24 +191,23 @@ namespace YoloDetect.PreProcess
         /// Post-procesamiento optimizado para YOLOv26 con 2 batch
         /// Output shape: [2, 300, 6] donde 6 = [x1, y1, x2, y2, score, class_id]
         /// </summary>
-        public (List<Detection> leftDetections, List<Detection> rightDetections) PreproccessedOutputBatchOptimizedYolov26(
+        public void PreproccessedOutputBatchOptimizedYolov26(
             Tensor<float>? output0,
+            List<Detection> DetectionRight,
+            List<Detection> DetectionLeft,
             int padX1, int padY1, float r1,
             int padX2, int padY2, float r2,
             float thresHold = 0.25f,
             int targetClass = 0)
         {
             if (output0 is null)
-                return (new List<Detection>(), new List<Detection>());
+                return;
 
             var dims = output0.Dimensions;
             // dims[0] = batch (2)
             // dims[1] = max detections (300)
             // dims[2] = 6 valores [x1, y1, x2, y2, score, class_id]
             int numPreds = dims[1];
-
-            var detectionsLeft = new List<Detection>(numPreds / 10);
-            var detectionsRight = new List<Detection>(numPreds / 10);
 
             // Pre-calcular valores constantes
             float invR1 = 1f / r1;
@@ -233,7 +229,7 @@ namespace YoloDetect.PreProcess
                         float x2_640 = output0[0, i, 2];
                         float y2_640 = output0[0, i, 3];
 
-                        detectionsLeft.Add(new Detection(
+                        DetectionLeft.Add(new Detection(
                             (x1_640 - padX1) * invR1,
                             (y1_640 - padY1) * invR1,
                             (x2_640 - padX1) * invR1,
@@ -257,7 +253,7 @@ namespace YoloDetect.PreProcess
                         float x2_640 = output0[1, i, 2];
                         float y2_640 = output0[1, i, 3];
 
-                        detectionsRight.Add(new Detection(
+                        DetectionRight.Add(new Detection(
                             (x1_640 - padX2) * invR2,
                             (y1_640 - padY2) * invR2,
                             (x2_640 - padX2) * invR2,
@@ -268,8 +264,6 @@ namespace YoloDetect.PreProcess
                     }
                 }
             }
-
-            return (detectionsLeft, detectionsRight);
         }
 
         private void NonMaxSuppression(List<Detection> detections, float iouThreshold)

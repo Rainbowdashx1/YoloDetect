@@ -20,6 +20,9 @@ namespace YoloDetect.VideoCapture
         private Mat leftLetterboxBuffer;
         private Mat rightLetterboxBuffer;
         private  List<Detection> _Detections;
+        private List<Detection> _DetectionsLeft;
+        private List<Detection> _DetectionsRight;
+        private List<Detection> _DetectionUnion;
         public Capture(string videoPath, string? videoProcessPath, string modelPath, VideoSourceType? preferredSourceType = null) 
         {
             this.videoPath = videoPath;
@@ -35,6 +38,9 @@ namespace YoloDetect.VideoCapture
             leftLetterboxBuffer = new Mat(new Size(640, 640), MatType.CV_8UC3);
             rightLetterboxBuffer = new Mat(new Size(640, 640), MatType.CV_8UC3);
             _Detections = new List<Detection>();
+            _DetectionsLeft = new List<Detection>();
+            _DetectionsRight = new List<Detection>();
+            _DetectionUnion = new List<Detection>();
         }
         public void runWithModel1Batch()
         {
@@ -94,8 +100,8 @@ namespace YoloDetect.VideoCapture
                         continue;
                     }
 
-                    List<Detection> detections = ProcessFrameBatchOverLap(frame);
-                    frameRender.DrawDetections(frame, detections);
+                    ProcessFrameBatchOverLap(frame);
+                    frameRender.DrawDetections(frame, _DetectionUnion);
                     
                     videoWriter?.Write(frame);
                     Cv2.ImShow("Cuadro Actual", frame);
@@ -170,8 +176,8 @@ namespace YoloDetect.VideoCapture
                         continue;
                     }
 
-                    var detections = ProcessFrameBatchOverLapYolo26(frame);
-                    frameRender.DrawDetections(frame, detections);
+                    ProcessFrameBatchOverLapYolo26(frame);
+                    frameRender.DrawDetections(frame, _DetectionUnion);
 
                     videoWriter?.Write(frame);
                     Cv2.ImShow("Cuadro Actual", frame);
@@ -229,7 +235,7 @@ namespace YoloDetect.VideoCapture
             _Detections.Clear();
             prePro.PreproccessedOutputYolov26(output0, padX, padY, r, _Detections);
         }
-        private List<Detection> ProcessFrameBatchOverLap(Mat frame)
+        private void ProcessFrameBatchOverLap(Mat frame)
         {
             int overlapPixels = 150; // Solapamiento configurable
             int halfWidth = frame.Width / 2;
@@ -247,17 +253,22 @@ namespace YoloDetect.VideoCapture
             process.LetterboxOptimized(leftRegion, leftLetterboxBuffer, 640, 640, out r1, out padX1, out padY1);
             process.LetterboxOptimized(rightRegion, rightLetterboxBuffer, 640, 640, out r2, out padX2, out padY2);
 
+            _DetectionsRight.Clear();
+            _DetectionsLeft.Clear();
+
             Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
-            var (leftDetections, rightDetections) = prePro.PreproccessedOutputBatchOptimized(
+            prePro.PreproccessedOutputBatchOptimized(
                 outputSession,
+                _DetectionsRight,
+                _DetectionsLeft,
                 padX1, padY1, r1,
                 padX2, padY2, r2
             );
   
-            for (int i = 0; i < rightDetections.Count; i++)
+            for (int i = 0; i < _DetectionsRight.Count; i++)
             {
-                var det = rightDetections[i];
-                rightDetections[i] = new Detection(
+                var det = _DetectionsRight[i];
+                _DetectionsRight[i] = new Detection(
                     det.X1 + rightStart,
                     det.Y1,
                     det.X2 + rightStart,
@@ -266,16 +277,17 @@ namespace YoloDetect.VideoCapture
                     det.ClassId
                 );
             }
+            _DetectionUnion.Clear();
             // Combinar y eliminar duplicados en la zona solapada
-            var allDetections = MergeOverlappingDetections(
-                leftDetections,
-                rightDetections,
+            MergeOverlappingDetections(
+                _DetectionsLeft,
+                _DetectionsRight,
+                _DetectionUnion,
                 halfWidth - overlapPixels,
                 halfWidth + overlapPixels
             );
-            return allDetections;
         }
-        private List<Detection> ProcessFrameBatchOverLapYolo26(Mat frame)
+        private void ProcessFrameBatchOverLapYolo26(Mat frame)
         {
             int overlapPixels = 150; // Solapamiento configurable
             int halfWidth = frame.Width / 2;
@@ -294,16 +306,22 @@ namespace YoloDetect.VideoCapture
             process.LetterboxOptimized(rightRegion, rightLetterboxBuffer, 640, 640, out r2, out padX2, out padY2);
 
             Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
-            var (leftDetections, rightDetections) = prePro.PreproccessedOutputBatchOptimizedYolov26(
+
+            _DetectionsRight.Clear();
+            _DetectionsLeft.Clear();
+
+            prePro.PreproccessedOutputBatchOptimizedYolov26(
                 outputSession,
+                _DetectionsRight,
+                _DetectionsLeft,
                 padX1, padY1, r1,
                 padX2, padY2, r2
             );
 
-            for (int i = 0; i < rightDetections.Count; i++)
+            for (int i = 0; i < _DetectionsRight.Count; i++)
             {
-                var det = rightDetections[i];
-                rightDetections[i] = new Detection(
+                var det = _DetectionsRight[i];
+                _DetectionsRight[i] = new Detection(
                     det.X1 + rightStart,
                     det.Y1,
                     det.X2 + rightStart,
@@ -312,18 +330,20 @@ namespace YoloDetect.VideoCapture
                     det.ClassId
                 );
             }
+            _DetectionUnion.Clear();
             // Combinar y eliminar duplicados en la zona solapada
-            var allDetections = MergeOverlappingDetections(
-                leftDetections,
-                rightDetections,
+            MergeOverlappingDetections(
+                _DetectionsLeft,
+                _DetectionsRight,
+                _DetectionUnion,
                 halfWidth - overlapPixels,
                 halfWidth + overlapPixels
             );
-            return allDetections;
         }
-        private List<Detection> MergeOverlappingDetections(
+        private void MergeOverlappingDetections(
             List<Detection> leftDetections,
             List<Detection> rightDetections,
+            List<Detection> _DetectionUnion,
             float overlapStart,
             float overlapEnd)
         {
@@ -353,12 +373,12 @@ namespace YoloDetect.VideoCapture
                             {
                                 if (rightDet.Score > leftDet.Score)
                                 {
-                                    result.Add(rightDet);
+                                    _DetectionUnion.Add(rightDet);
                                     isDuplicate = true;
                                 }
                                 else
                                 {
-                                    result.Add(leftDet);
+                                    _DetectionUnion.Add(leftDet);
                                 }
 
                                 processedRight.Add(i);
@@ -371,7 +391,7 @@ namespace YoloDetect.VideoCapture
 
                 if (!isDuplicate)
                 {
-                    result.Add(leftDet);
+                    _DetectionUnion.Add(leftDet);
                 }
             }
 
@@ -379,11 +399,9 @@ namespace YoloDetect.VideoCapture
             {
                 if (!processedRight.Contains(i))
                 {
-                    result.Add(rightDetections[i]);
+                    _DetectionUnion.Add(rightDetections[i]);
                 }
             }
-
-            return result;
         }
     }
 }
