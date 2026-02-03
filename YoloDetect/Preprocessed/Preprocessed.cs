@@ -190,6 +190,87 @@ namespace YoloDetect.PreProcess
                 _Detections.Add(new Detection(x1_orig, y1_orig, x2_orig, y2_orig, score, classId));
             }
         }
+        /// <summary>
+        /// Post-procesamiento optimizado para YOLOv26 con 2 batch
+        /// Output shape: [2, 300, 6] donde 6 = [x1, y1, x2, y2, score, class_id]
+        /// </summary>
+        public (List<Detection> leftDetections, List<Detection> rightDetections) PreproccessedOutputBatchOptimizedYolov26(
+            Tensor<float>? output0,
+            int padX1, int padY1, float r1,
+            int padX2, int padY2, float r2,
+            float thresHold = 0.25f,
+            int targetClass = 0)
+        {
+            if (output0 is null)
+                return (new List<Detection>(), new List<Detection>());
+
+            var dims = output0.Dimensions;
+            // dims[0] = batch (2)
+            // dims[1] = max detections (300)
+            // dims[2] = 6 valores [x1, y1, x2, y2, score, class_id]
+            int numPreds = dims[1];
+
+            var detectionsLeft = new List<Detection>(numPreds / 10);
+            var detectionsRight = new List<Detection>(numPreds / 10);
+
+            // Pre-calcular valores constantes
+            float invR1 = 1f / r1;
+            float invR2 = 1f / r2;
+
+            // Procesar ambas imágenes en un solo loop
+            for (int i = 0; i < numPreds; i++)
+            {
+                // Procesar imagen izquierda (batch 0)
+                float score0 = output0[0, i, 4];
+                if (score0 >= thresHold)
+                {
+                    int classId0 = (int)output0[0, i, 5];
+                    if (classId0 == targetClass)
+                    {
+                        // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
+                        float x1_640 = output0[0, i, 0];
+                        float y1_640 = output0[0, i, 1];
+                        float x2_640 = output0[0, i, 2];
+                        float y2_640 = output0[0, i, 3];
+
+                        detectionsLeft.Add(new Detection(
+                            (x1_640 - padX1) * invR1,
+                            (y1_640 - padY1) * invR1,
+                            (x2_640 - padX1) * invR1,
+                            (y2_640 - padY1) * invR1,
+                            score0,
+                            classId0
+                        ));
+                    }
+                }
+
+                // Procesar imagen derecha (batch 1)
+                float score1 = output0[1, i, 4];
+                if (score1 >= thresHold)
+                {
+                    int classId1 = (int)output0[1, i, 5];
+                    if (classId1 == targetClass)
+                    {
+                        // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
+                        float x1_640 = output0[1, i, 0];
+                        float y1_640 = output0[1, i, 1];
+                        float x2_640 = output0[1, i, 2];
+                        float y2_640 = output0[1, i, 3];
+
+                        detectionsRight.Add(new Detection(
+                            (x1_640 - padX2) * invR2,
+                            (y1_640 - padY2) * invR2,
+                            (x2_640 - padX2) * invR2,
+                            (y2_640 - padY2) * invR2,
+                            score1,
+                            classId1
+                        ));
+                    }
+                }
+            }
+
+            return (detectionsLeft, detectionsRight);
+        }
 
         private void NonMaxSuppression(List<Detection> detections, float iouThreshold)
         {
