@@ -1,4 +1,5 @@
 ﻿using YoloDetect.VideoCapture;
+using YoloDetect.VideoCapture.ProcesorDetection;
 using YoloDetect.VideoSources;
 
 internal class Program
@@ -16,7 +17,7 @@ internal class Program
     static private string videoPath = string.Empty;
     static private string? videoProcessPath;
     static private VideoSourceType? sourceType;
-
+    private static ModelType modelType;
     private static void Main(string[] args)
     {
         Console.WriteLine("=== YoloPerson Detection ===\n");
@@ -101,6 +102,7 @@ internal class Program
 
         string? opcion = Console.ReadLine();
         bool Yolo26 = false;
+
         switch (opcion)
         {
             case "1":
@@ -134,44 +136,50 @@ internal class Program
         Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, sourceType);
 
         if (batch && Yolo26 == false)
-            Cap.runWithModel2Batch();
+            Cap.runWithModel2Batch(modelType);
         else if (!Yolo26)
-            Cap.runWithModel1Batch();
+            Cap.runWithModel1Batch(modelType);
         else if (Yolo26 && opcion != "6")
-            Cap.runWithModel1BatchYolo26();
+            Cap.runWithModel1BatchYolo26(modelType);
         else if (Yolo26 && opcion == "6")
-            Cap.runWithModel2BatchYolo26();
+            Cap.runWithModel2BatchYolo26(modelType);
     }
     private static void usingYolo11m()
     {
         modelPath = yolo11m;
+        modelType = ModelType.Yolo11;
         Console.WriteLine("Usando modelo yolo11m");
     }
     private static void usingYolo11m2batch()
     {
         modelPath = yolo11m2batch;
         batch = true;
+        modelType = ModelType.Yolo11;
         Console.WriteLine("Usando modelo yolo11m 2 batch");
     }
     private static void usingYolo11n1batch()
     {
         modelPath = yolo11n1batch;
+        modelType = ModelType.Yolo11;
         Console.WriteLine("Usando modelo yolo11n 1 batch");
     }
     private static void usingYolo11n2batch()
     {
         modelPath = yolo11n2batch;
         batch = true;
+        modelType = ModelType.Yolo11;
         Console.WriteLine("Usando modelo yolo11n 2 batch");
     }
     private static void usingYolo26n1batch()
     {
         modelPath = yolo26n1batch;
+        modelType = ModelType.Yolo26;
         Console.WriteLine("Usando modelo yolo26n 1 batch");
     }
     private static void usingYolo26n2batch()
     {
         modelPath = yolo26n2batch;
+        modelType = ModelType.Yolo26;
         batch = true;
         Console.WriteLine("Usando modelo yolo26n 2 batch");
     }

@@ -2,6 +2,7 @@
 using OpenCvSharp;
 using YoloDetect.Nvidia;
 using YoloDetect.PreProcess;
+using YoloDetect.VideoCapture.ProcesorDetection;
 using YoloDetect.VideoSources;
 
 namespace YoloDetect.VideoCapture
@@ -15,6 +16,7 @@ namespace YoloDetect.VideoCapture
         private readonly Preprocessed prePro;
         private readonly FrameRender frameRender;
         private readonly VideoSourceType? preferredSourceType;
+        private IDetectionProcessor processor;
         /*Buffer Reutilizables*/
         private Mat letterboxBuffer;
         private Mat leftLetterboxBuffer;
@@ -42,8 +44,9 @@ namespace YoloDetect.VideoCapture
             _DetectionsRight = new List<Detection>();
             _DetectionUnion = new List<Detection>();
         }
-        public void runWithModel1Batch()
+        public void runWithModel1Batch(ModelType modelType)
         {
+            processor = ProcessorFactory.Create(modelType);
             using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
             using var videoWriter = CreateVideoWriter(videoSource);
 
@@ -80,11 +83,11 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
-        public void runWithModel2Batch()
+        public void runWithModel2Batch(ModelType modelType)
         {
+            processor = ProcessorFactory.Create(modelType);
             using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
             using var videoWriter = CreateVideoWriter(videoSource);
-
             try
             {
                 Mat frame = new Mat();
@@ -118,8 +121,9 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
-        public void runWithModel1BatchYolo26()
+        public void runWithModel1BatchYolo26(ModelType modelType)
         {
+            processor = ProcessorFactory.Create(modelType);
             using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
             using var videoWriter = CreateVideoWriter(videoSource);
 
@@ -138,7 +142,7 @@ namespace YoloDetect.VideoCapture
                         continue;
                     }
 
-                    ProcessFrameYolo26(frame);
+                    ProcessFrame(frame);
                     frameRender.DrawDetections(frame, _Detections);
 
                     videoWriter?.Write(frame);
@@ -156,8 +160,9 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
-        public void runWithModel2BatchYolo26()
+        public void runWithModel2BatchYolo26(ModelType modelType)
         {
+            processor = ProcessorFactory.Create(modelType);
             using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
             using var videoWriter = CreateVideoWriter(videoSource);
 
@@ -176,7 +181,7 @@ namespace YoloDetect.VideoCapture
                         continue;
                     }
 
-                    ProcessFrameBatchOverLapYolo26(frame);
+                    ProcessFrameBatchOverLap(frame);
                     frameRender.DrawDetections(frame, _DetectionUnion);
 
                     videoWriter?.Write(frame);
@@ -224,16 +229,7 @@ namespace YoloDetect.VideoCapture
             process.LetterboxOptimized(frame, letterboxBuffer, 640, 640, out r, out padX, out padY);
             Tensor<float>? output0 = session.SessionRun(letterboxBuffer);
             _Detections.Clear();
-            prePro.PreproccessedOutput(output0, padX, padY, r, _Detections);
-        }
-        private void ProcessFrameYolo26(Mat frame)
-        {
-            float r;
-            int padX, padY;
-            process.LetterboxOptimized(frame, letterboxBuffer, 640, 640, out r, out padX, out padY);
-            Tensor<float>? output0 = session.SessionRun(letterboxBuffer);
-            _Detections.Clear();
-            prePro.PreproccessedOutputYolov26(output0, padX, padY, r, _Detections);
+            processor.ProcessSingleBatch(output0, padX, padY, r, _Detections);
         }
         private void ProcessFrameBatchOverLap(Mat frame)
         {
@@ -257,7 +253,7 @@ namespace YoloDetect.VideoCapture
             _DetectionsLeft.Clear();
 
             Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
-            prePro.PreproccessedOutputBatchOptimized(
+            processor.ProcessDoubleBatch(
                 outputSession,
                 _DetectionsRight,
                 _DetectionsLeft,
@@ -265,59 +261,6 @@ namespace YoloDetect.VideoCapture
                 padX2, padY2, r2
             );
   
-            for (int i = 0; i < _DetectionsRight.Count; i++)
-            {
-                var det = _DetectionsRight[i];
-                _DetectionsRight[i] = new Detection(
-                    det.X1 + rightStart,
-                    det.Y1,
-                    det.X2 + rightStart,
-                    det.Y2,
-                    det.Score,
-                    det.ClassId
-                );
-            }
-            _DetectionUnion.Clear();
-            // Combinar y eliminar duplicados en la zona solapada
-            MergeOverlappingDetections(
-                _DetectionsLeft,
-                _DetectionsRight,
-                _DetectionUnion,
-                halfWidth - overlapPixels,
-                halfWidth + overlapPixels
-            );
-        }
-        private void ProcessFrameBatchOverLapYolo26(Mat frame)
-        {
-            int overlapPixels = 150; // Solapamiento configurable
-            int halfWidth = frame.Width / 2;
-
-            int leftWidth = halfWidth + overlapPixels;
-            int rightStart = halfWidth - overlapPixels;
-            int rightWidth = frame.Width - rightStart;
-
-            using Mat leftRegion = new Mat(frame, new Rect(0, 0, leftWidth, frame.Height));
-            using Mat rightRegion = new Mat(frame, new Rect(rightStart, 0, rightWidth, frame.Height));
-
-            float r1, r2;
-            int padX1, padY1, padX2, padY2;
-
-            process.LetterboxOptimized(leftRegion, leftLetterboxBuffer, 640, 640, out r1, out padX1, out padY1);
-            process.LetterboxOptimized(rightRegion, rightLetterboxBuffer, 640, 640, out r2, out padX2, out padY2);
-
-            Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
-
-            _DetectionsRight.Clear();
-            _DetectionsLeft.Clear();
-
-            prePro.PreproccessedOutputBatchOptimizedYolov26(
-                outputSession,
-                _DetectionsRight,
-                _DetectionsLeft,
-                padX1, padY1, r1,
-                padX2, padY2, r2
-            );
-
             for (int i = 0; i < _DetectionsRight.Count; i++)
             {
                 var det = _DetectionsRight[i];
