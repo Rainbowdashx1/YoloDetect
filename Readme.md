@@ -57,6 +57,11 @@
 
 # Changelog
 
+## Version 1.0.7
+
+### Add two-batch yolov26
+- The two-batch functionality has been added to yolov26
+
 ## Version 1.0.6
 
 ### Add MatToTensorHybridNoParallel
