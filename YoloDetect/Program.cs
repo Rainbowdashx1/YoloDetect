@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using YoloDetect.VideoCapture;
+﻿using YoloDetect.VideoCapture;
 using YoloDetect.VideoSources;
 
 internal class Program
