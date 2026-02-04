@@ -227,7 +227,7 @@ namespace YoloDetect.VideoCapture
             float r;
             int padX, padY;
             process.LetterboxOptimized(frame, letterboxBuffer, 640, 640, out r, out padX, out padY);
-            Tensor<float>? output0 = session.SessionRun(letterboxBuffer);
+            DenseTensor<float>? output0 = session.SessionRun(letterboxBuffer);
             _Detections.Clear();
             processor.ProcessSingleBatch(output0, padX, padY, r, _Detections);
         }
@@ -252,7 +252,7 @@ namespace YoloDetect.VideoCapture
             _DetectionsRight.Clear();
             _DetectionsLeft.Clear();
 
-            Tensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
+            DenseTensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
             processor.ProcessDoubleBatch(
                 outputSession,
                 _DetectionsRight,

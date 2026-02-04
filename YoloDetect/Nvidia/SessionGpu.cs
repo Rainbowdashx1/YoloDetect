@@ -12,6 +12,10 @@ namespace YoloDetect.Nvidia
         private List<NamedOnnxValue> _reusableInputsSingle;
         private List<NamedOnnxValue> _reusableInputsBatch;
 
+        // Tensores de salida reutilizables para evitar memory leaks
+        private DenseTensor<float>? _reusableOutputSingle;
+        private DenseTensor<float>? _reusableOutputBatch;
+
         public SessionGpu(string modelPath) 
         {
             SessionOptions sessionOptions = new SessionOptions();
@@ -63,17 +67,60 @@ namespace YoloDetect.Nvidia
                 NamedOnnxValue.CreateFromTensor("images", _reusableTensorBatch)
             };
         }
-        public Tensor<float>? SessionRun(Mat matframeLetterbox) 
+        public DenseTensor<float>? SessionRun(Mat matframeLetterbox) 
         {
             TensorConverterSingle.MatToTensorHybridNoParallel(matframeLetterbox, _reusableTensor);
-            var results = session.Run(_reusableInputsSingle);
-            return results.First(r => r.Name == "output0").AsTensor<float>();
+
+            using var results = session.Run(_reusableInputsSingle);
+            var outputTensor = results[0].AsTensor<float>() as DenseTensor<float>;
+
+            if (outputTensor == null)
+                return null;
+
+            // Inicializar tensor de salida reutilizable si es necesario
+            var dims = outputTensor.Dimensions;
+            if (_reusableOutputSingle == null || !DimsMatch(_reusableOutputSingle.Dimensions, dims))
+            {
+                _reusableOutputSingle = new DenseTensor<float>(dims);
+            }
+
+            // Copiar datos al tensor reutilizable antes de que results sea disposed
+            outputTensor.Buffer.Span.CopyTo(_reusableOutputSingle.Buffer.Span);
+
+            return _reusableOutputSingle;
         }
-        public Tensor<float>? SessionRunBatch(Mat mat1, Mat mat2)
+
+        public DenseTensor<float>? SessionRunBatch(Mat mat1, Mat mat2)
         {
             TensorConverterBatch.MatToTensorHybridBatch(mat1, mat2, _reusableTensorBatch);
-            var results = session.Run(_reusableInputsBatch);
-            return results.First(r => r.Name == "output0").AsTensor<float>();
+
+            using var results = session.Run(_reusableInputsBatch);
+            var outputTensor = results.First(r => r.Name == "output0").AsTensor<float>() as DenseTensor<float>;
+
+            if (outputTensor == null)
+                return null;
+
+            // Inicializar tensor de salida reutilizable si es necesario
+            var dims = outputTensor.Dimensions;
+            if (_reusableOutputBatch == null || !DimsMatch(_reusableOutputBatch.Dimensions, dims))
+            {
+                _reusableOutputBatch = new DenseTensor<float>(dims);
+            }
+
+            // Copiar datos al tensor reutilizable antes de que results sea disposed
+            outputTensor.Buffer.Span.CopyTo(_reusableOutputBatch.Buffer.Span);
+
+            return _reusableOutputBatch;
+        }
+
+        private static bool DimsMatch(ReadOnlySpan<int> a, ReadOnlySpan<int> b)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i]) return false;
+            }
+            return true;
         }
     }
 }

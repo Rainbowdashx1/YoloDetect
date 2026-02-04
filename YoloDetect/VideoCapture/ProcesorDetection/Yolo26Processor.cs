@@ -22,7 +22,7 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
         }
 
         public void ProcessSingleBatch(
-            Tensor<float>? output,
+            DenseTensor<float>? output,
             int padX, int padY, float r,
             List<Detection> detections)
         {
@@ -31,7 +31,7 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
         }
 
         public void ProcessDoubleBatch(
-            Tensor<float>? output,
+            DenseTensor<float>? output,
             List<Detection> leftDetections,
             List<Detection> rightDetections,
             int padX1, int padY1, float r1,

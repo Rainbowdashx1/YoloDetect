@@ -4,25 +4,35 @@ namespace YoloDetect.PreProcess
 {
     public class Preprocessed
     {
-        public void PreproccessedOutput(Tensor<float>? output0, int padX, int padY, float r,List<Detection> _Detections, bool nonMaxSuppression = true, float nonMaxSuppressionThreshold = 0.45f, float thresHold = 0.25f)
+        public void PreproccessedOutput(DenseTensor<float>? output0, int padX, int padY, float r,List<Detection> _Detections, bool nonMaxSuppression = true, float nonMaxSuppressionThreshold = 0.45f, float thresHold = 0.25f)
         {
             if (output0 is null)
                 return;
 
+            ReadOnlySpan<float> buffer = output0.Buffer.Span;//No crea allocation porque es solo una referencia al buffer interno
+
             var dims = output0.Dimensions;
+
+            int channels = dims[1];  // 84 para YOLO11
+            int numPreds = dims[2];  // 8400 típicamente
+            int stride = channels * numPreds;
+
             int batch = dims[0];
-            int channels = dims[1];
-            int numPreds = dims[2];
             int maxClsIdx = 4;
+
+            int offsetX = 0 * numPreds;      // Canal 0: xCenter
+            int offsetY = 1 * numPreds;      // Canal 1: yCenter  
+            int offsetW = 2 * numPreds;      // Canal 2: width
+            int offsetH = 3 * numPreds;      // Canal 3: height
+            int offsetScore = 4 * numPreds;  // Canal 4: score
 
             for (int i = 0; i < numPreds; i++)
             {
-                float xCenter = output0[0, 0, i];
-                float yCenter = output0[0, 1, i];
-                float w = output0[0, 2, i];
-                float h = output0[0, 3, i];
-
-                float clsScore = output0[0, 4, i]; // We only look for the score of people; if you want to search for something else, change the 4 or modify the search logic
+                float xCenter = buffer[offsetX + i];
+                float yCenter = buffer[offsetY + i];
+                float w = buffer[offsetW + i];
+                float h = buffer[offsetH + i];
+                float clsScore = buffer[offsetScore + i];
 
                 if (clsScore < thresHold)
                     continue;
@@ -68,7 +78,7 @@ namespace YoloDetect.PreProcess
             }
         }
         public void PreproccessedOutputBatchOptimized(
-        Tensor<float>? output0,
+        DenseTensor<float>? output0,
         List<Detection> DetectionRight,
         List<Detection> DetectionLeft,
         int padX1, int padY1, float r1,
@@ -80,9 +90,30 @@ namespace YoloDetect.PreProcess
             if (output0 is null)
                 return;
 
+            ReadOnlySpan<float> buffer = output0.Buffer.Span;//No crea allocation porque es solo una referencia al buffer interno
             var dims = output0.Dimensions;
-            int numPreds = dims[2];
+
+            int channels = dims[1];  // 84 para YOLO11
+            int numPreds = dims[2];  // 8400 típicamente
+            int stride = channels * numPreds;
+
+            int batch = dims[0];
             int maxClsIdx = 4;
+
+            int offsetX = 0 * numPreds;      // Canal 0: xCenter
+            int offsetY = 1 * numPreds;      // Canal 1: yCenter  
+            int offsetW = 2 * numPreds;      // Canal 2: width
+            int offsetH = 3 * numPreds;      // Canal 3: height
+            int offsetScore = 4 * numPreds;  // Canal 4: score
+
+            /*
+             
+                float xCenter = buffer[offsetX + i];
+                float yCenter = buffer[offsetY + i];
+                float w = buffer[offsetW + i];
+                float h = buffer[offsetH + i];
+                float clsScore = buffer[offsetScore + i];
+             */
 
             // Pre-calcular valores constantes
             float invR1 = 1f / r1;
@@ -92,13 +123,13 @@ namespace YoloDetect.PreProcess
             for (int i = 0; i < numPreds; i++)
             {
                 // Procesar imagen izquierda (batch 0)
-                float clsScore0 = output0[0, 4, i];
+                float clsScore0 = buffer[offsetScore + i];
                 if (clsScore0 >= thresHold)
                 {
-                    float xCenter = output0[0, 0, i];
-                    float yCenter = output0[0, 1, i];
-                    float halfW = output0[0, 2, i] * 0.5f;
-                    float halfH = output0[0, 3, i] * 0.5f;
+                    float xCenter = buffer[offsetX + i];
+                    float yCenter = buffer[offsetY + i];
+                    float halfW = buffer[offsetW + i] * 0.5f;
+                    float halfH = buffer[offsetH + i] * 0.5f;
 
                     DetectionLeft.Add(new Detection(
                         (xCenter - halfW - padX1) * invR1,
@@ -111,13 +142,15 @@ namespace YoloDetect.PreProcess
                 }
 
                 // Procesar imagen derecha (batch 1)
-                float clsScore1 = output0[1, 4, i];
+                int batch1Offset = stride;
+
+                float clsScore1 = buffer[batch1Offset + offsetScore + i];
                 if (clsScore1 >= thresHold)
                 {
-                    float xCenter = output0[1, 0, i];
-                    float yCenter = output0[1, 1, i];
-                    float halfW = output0[1, 2, i] * 0.5f;
-                    float halfH = output0[1, 3, i] * 0.5f;
+                    float xCenter = buffer[batch1Offset + offsetX + i];
+                    float yCenter = buffer[batch1Offset + offsetY + i];
+                    float halfW = buffer[batch1Offset + offsetW + i] * 0.5f;
+                    float halfH = buffer[batch1Offset + offsetH + i] * 0.5f;
 
                     DetectionRight.Add(new Detection(
                         (xCenter - halfW - padX2) * invR2,
@@ -140,37 +173,41 @@ namespace YoloDetect.PreProcess
         /// Post-procesamiento para YOLOv26
         /// Output shape: [1, 300, 6] donde 6 = [x1, y1, x2, y2, score, class_id]
         /// </summary>
-        public void PreproccessedOutputYolov26(Tensor<float>? output0, int padX, int padY, float r,
+        public void PreproccessedOutputYolov26(DenseTensor<float>? output0, int padX, int padY, float r,
             List<Detection> _Detections, float thresHold = 0.25f, int targetClass = 0)
         {
             if (output0 is null)
                 return;
+            ReadOnlySpan<float> buffer = output0.Buffer.Span;
 
             var dims = output0.Dimensions;
             // dims[0] = batch (1)
             // dims[1] = max detections (300)
             // dims[2] = 6 valores [x1, y1, x2, y2, score, class_id]
             int numPreds = dims[1];
+            int stride = 6; // 6 valores por detección
 
             for (int i = 0; i < numPreds; i++)
             {
-                float score = output0[0, i, 4];
+                int offset = i * stride;
+
+                float score = buffer[offset + 4];
 
                 // Si score es 0 o muy bajo, probablemente ya no hay más detecciones válidas
                 if (score < thresHold)
                     continue;
 
-                int classId = (int)output0[0, i, 5];
+                int classId = (int)buffer[offset + 5];
 
                 // Filtrar por clase si es necesario (0 = persona en COCO)
                 if (classId != targetClass)
                     continue;
 
                 // Coordenadas ya en formato x1,y1,x2,y2 (esquinas) en espacio 640x640
-                float x1_640 = output0[0, i, 0];
-                float y1_640 = output0[0, i, 1];
-                float x2_640 = output0[0, i, 2];
-                float y2_640 = output0[0, i, 3];
+                float x1_640 = buffer[offset + 0];
+                float y1_640 = buffer[offset + 1];
+                float x2_640 = buffer[offset + 2];
+                float y2_640 = buffer[offset + 3];
 
                 // Remover padding del letterbox
                 float x1_nopad = x1_640 - padX;
@@ -192,7 +229,7 @@ namespace YoloDetect.PreProcess
         /// Output shape: [2, 300, 6] donde 6 = [x1, y1, x2, y2, score, class_id]
         /// </summary>
         public void PreproccessedOutputBatchOptimizedYolov26(
-            Tensor<float>? output0,
+            DenseTensor<float>? output0,
             List<Detection> DetectionRight,
             List<Detection> DetectionLeft,
             int padX1, int padY1, float r1,
@@ -203,11 +240,17 @@ namespace YoloDetect.PreProcess
             if (output0 is null)
                 return;
 
+            ReadOnlySpan<float> buffer = output0.Buffer.Span;
+
             var dims = output0.Dimensions;
             // dims[0] = batch (2)
             // dims[1] = max detections (300)
             // dims[2] = 6 valores [x1, y1, x2, y2, score, class_id]
             int numPreds = dims[1];
+
+            int stride = 6; // 6 valores por detección
+            int batchStride = numPreds * stride; // Stride completo para saltar de batch 0 a batch 1
+
 
             // Pre-calcular valores constantes
             float invR1 = 1f / r1;
@@ -216,18 +259,19 @@ namespace YoloDetect.PreProcess
             // Procesar ambas imágenes en un solo loop
             for (int i = 0; i < numPreds; i++)
             {
+                int offset = i * stride;
                 // Procesar imagen izquierda (batch 0)
-                float score0 = output0[0, i, 4];
+                float score0 = buffer[offset + 4];
                 if (score0 >= thresHold)
                 {
-                    int classId0 = (int)output0[0, i, 5];
+                    int classId0 = (int)buffer[offset + 5];
                     if (classId0 == targetClass)
                     {
                         // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
-                        float x1_640 = output0[0, i, 0];
-                        float y1_640 = output0[0, i, 1];
-                        float x2_640 = output0[0, i, 2];
-                        float y2_640 = output0[0, i, 3];
+                        float x1_640 = buffer[offset + 0];
+                        float y1_640 = buffer[offset + 1];
+                        float x2_640 = buffer[offset + 2];
+                        float y2_640 = buffer[offset + 3];
 
                         DetectionLeft.Add(new Detection(
                             (x1_640 - padX1) * invR1,
@@ -240,18 +284,20 @@ namespace YoloDetect.PreProcess
                     }
                 }
 
+                int batch1Offset = batchStride + offset;
+
                 // Procesar imagen derecha (batch 1)
-                float score1 = output0[1, i, 4];
+                float score1 = buffer[batch1Offset + 4];
                 if (score1 >= thresHold)
                 {
-                    int classId1 = (int)output0[1, i, 5];
+                    int classId1 = (int)buffer[batch1Offset + 5];
                     if (classId1 == targetClass)
                     {
                         // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
-                        float x1_640 = output0[1, i, 0];
-                        float y1_640 = output0[1, i, 1];
-                        float x2_640 = output0[1, i, 2];
-                        float y2_640 = output0[1, i, 3];
+                        float x1_640 = buffer[batch1Offset + 0];
+                        float y1_640 = buffer[batch1Offset + 1];
+                        float x2_640 = buffer[batch1Offset + 2];
+                        float y2_640 = buffer[batch1Offset + 3];
 
                         DetectionRight.Add(new Detection(
                             (x1_640 - padX2) * invR2,
