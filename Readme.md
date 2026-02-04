@@ -57,6 +57,17 @@
 
 # Changelog
 
+## Version 1.0.8
+
+### Batch Post-Processing with Reusable Buffers
+- Batch post-processing was refactored to operate directly on preallocated detection buffers instead of creating and returning new lists. Separate reusable buffers are maintained for left, right, and merged detections. Processing and merge steps now modify these buffers in place, and rendering uses the merged buffer as the single source of truth, reducing allocations and simplifying data flow
+
+### Modular YOLO Detection Processor Architecture
+- A processor-based architecture was introduced using the IDetectionProcessor interface to decouple post-processing logic from specific YOLO model versions. Dedicated processors for YOLOv11 and YOLOv26, along with a factory and model type enumeration, allow the capture pipeline to delegate post-processing cleanly, improving maintainability and scalability.
+
+### Optimized Tensor Reuse and Memory Management
+- ONNX inference was optimized by reusing DenseTensor<float> instances instead of allocating new tensors per inference. Post-processing now accesses tensor data through ReadOnlySpan<float> to work directly on the internal buffer, significantly reducing memory allocations and preventing potential memory leaks during GPU inference.
+
 ## Version 1.0.7
 
 ### Add two-batch yolov26
