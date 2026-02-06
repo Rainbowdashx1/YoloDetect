@@ -57,6 +57,11 @@
 
 # Changelog
 
+## Version 1.0.9
+
+### IO Binding Optimization
+- **OrtIoBinding** to eliminate memory allocations during inference.
+
 ## Version 1.0.8
 
 ### Batch Post-Processing with Reusable Buffers
