@@ -7,6 +7,8 @@ namespace YoloDetect.VideoCapture
         // Buffer reutilizable para evitar allocaciones repetidas
         private Mat? _resizedBuffer;
         private Size _lastResizedSize;
+        private readonly Scalar _borderColor = new Scalar(114, 114, 114); // Reutilizable
+
         public record struct FrameTransform(
             int PadX,
             int PadY,
@@ -97,22 +99,21 @@ namespace YoloDetect.VideoCapture
             int padRight = totalPadX - padX;
             int padBottom = totalPadY - padY;
 
-            Size newSize = new Size(newW, newH);
-            if (_resizedBuffer == null || _lastResizedSize != newSize)
+            if (_resizedBuffer == null || _lastResizedSize.Width != newW || _lastResizedSize.Height != newH)
             {
                 _resizedBuffer?.Dispose();
                 _resizedBuffer = new Mat();
-                _lastResizedSize = newSize;
+                _lastResizedSize = new Size(newW, newH); ;
             }
 
-            Cv2.Resize(src, _resizedBuffer, newSize, 0, 0, InterpolationFlags.Linear);
+            Cv2.Resize(src, _resizedBuffer, _lastResizedSize, 0, 0, InterpolationFlags.Linear);
             Cv2.CopyMakeBorder(
                 _resizedBuffer,
                 dst,
                 padY, padBottom,
                 padX, padRight,
                 BorderTypes.Constant,
-                new Scalar(114, 114, 114)
+                _borderColor
             );
         }
 

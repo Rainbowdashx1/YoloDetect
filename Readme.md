@@ -57,6 +57,16 @@
 
 # Changelog
 
+## Version 1.0.10
+
+### Optimized Border Color Handling and Buffer Reuse in ProcessFrame
+
+- Added a reusable _borderColor field to avoid repeated Scalar instantiations.
+Improved _resizedBuffer reuse logic by validating width and height independently instead of relying on a single size comparison.
+
+- These changes were applied to the LetterboxOptimized process.
+While they do not result in a measurable speed improvement, they eliminate unnecessary object allocations on every frame, improving memory efficiency and reducing GC pressure.
+
 ## Version 1.0.9
 
 ### IO Binding Optimization
