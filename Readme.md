@@ -57,6 +57,14 @@
 
 # Changelog
 
+## Version 1.0.11
+
+### Target Class Filtering for YOLO Detection
+
+Support has been added to filter detections by a set of target classes (`targetClasses`) in both **YOLOv11** and **YOLOv26** preprocessing pipelines.
+Method and constructor signatures were updated to accept a `HashSet<int>` instead of a single class parameter. This allows dynamic filtering based on multiple specified classes, providing greater flexibility and customization during detection.
+Interfaces and detection processors were updated accordingly to propagate the new parameter across the processing pipeline.
+
 ## Version 1.0.10
 
 ### Optimized Border Color Handling and Buffer Reuse in ProcessFrame

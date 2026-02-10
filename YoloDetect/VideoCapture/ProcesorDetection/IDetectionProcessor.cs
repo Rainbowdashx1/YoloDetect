@@ -13,7 +13,7 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
         void ProcessSingleBatch(
             DenseTensor<float>? output,
             int padX, int padY, float r,
-            List<Detection> detections);
+            List<Detection> detections, HashSet<int> TargetClasses);
 
         void ProcessDoubleBatch(
             DenseTensor<float>? output,

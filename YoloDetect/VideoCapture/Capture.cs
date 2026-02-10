@@ -25,7 +25,9 @@ namespace YoloDetect.VideoCapture
         private List<Detection> _DetectionsLeft;
         private List<Detection> _DetectionsRight;
         private List<Detection> _DetectionUnion;
-        public Capture(string videoPath, string? videoProcessPath, string modelPath, VideoSourceType? preferredSourceType = null) 
+
+        private HashSet<int> TargetClasses;
+        public Capture(string videoPath, string? videoProcessPath, string modelPath, HashSet<int> targetClasses, VideoSourceType? preferredSourceType = null) 
         {
             this.videoPath = videoPath;
             this.videoProcessPath = videoProcessPath;
@@ -43,6 +45,7 @@ namespace YoloDetect.VideoCapture
             _DetectionsLeft = new List<Detection>();
             _DetectionsRight = new List<Detection>();
             _DetectionUnion = new List<Detection>();
+            TargetClasses = targetClasses;
         }
         public void runWithModel1Batch(ModelType modelType)
         {
@@ -229,7 +232,7 @@ namespace YoloDetect.VideoCapture
             process.LetterboxOptimized(frame, letterboxBuffer, 640, 640, out r, out padX, out padY);
             DenseTensor<float>? output0 = session.SessionRun(letterboxBuffer);
             _Detections.Clear();
-            processor.ProcessSingleBatch(output0, padX, padY, r, _Detections);
+            processor.ProcessSingleBatch(output0, padX, padY, r, _Detections, TargetClasses);
         }
         private void ProcessFrameBatchOverLap(Mat frame)
         {

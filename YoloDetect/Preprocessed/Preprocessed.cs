@@ -4,7 +4,16 @@ namespace YoloDetect.PreProcess
 {
     public class Preprocessed
     {
-        public void PreproccessedOutput(DenseTensor<float>? output0, int padX, int padY, float r,List<Detection> _Detections, bool nonMaxSuppression = true, float nonMaxSuppressionThreshold = 0.45f, float thresHold = 0.25f)
+        public void PreproccessedOutput(
+            DenseTensor<float>? output0,
+            int padX,
+            int padY,
+            float r,
+            List<Detection> _Detections,
+            HashSet<int> targetClasses,
+            bool nonMaxSuppression = true,
+            float nonMaxSuppressionThreshold = 0.45f,
+            float thresHold = 0.25f)
         {
             if (output0 is null)
                 return;
@@ -15,28 +24,41 @@ namespace YoloDetect.PreProcess
 
             int channels = dims[1];  // 84 para YOLO11
             int numPreds = dims[2];  // 8400 típicamente
-            int stride = channels * numPreds;
 
             int batch = dims[0];
-            int maxClsIdx = 4;
+            int numClasses = channels - 4; // 80 clases
 
             int offsetX = 0 * numPreds;      // Canal 0: xCenter
             int offsetY = 1 * numPreds;      // Canal 1: yCenter  
             int offsetW = 2 * numPreds;      // Canal 2: width
             int offsetH = 3 * numPreds;      // Canal 3: height
-            int offsetScore = 4 * numPreds;  // Canal 4: score
+            int offsetClasses = 4 * numPreds;
 
             for (int i = 0; i < numPreds; i++)
             {
+                float maxScore = 0f;
+                int maxClsIdx = 0;
+
                 float xCenter = buffer[offsetX + i];
                 float yCenter = buffer[offsetY + i];
                 float w = buffer[offsetW + i];
                 float h = buffer[offsetH + i];
-                float clsScore = buffer[offsetScore + i];
 
-                if (clsScore < thresHold)
+                foreach (int classId in targetClasses)
+                {
+                    if (classId >= numClasses)
+                        continue;
+
+                    float score = buffer[offsetClasses + classId * numPreds + i];
+                    if (score > maxScore)
+                    {
+                        maxScore = score;
+                        maxClsIdx = classId;
+                    }
+                }
+
+                if (maxScore < thresHold)
                     continue;
-
                 // --------------------------------------------------------------------------------
                 // A) xywh -> x1, y1, x2, y2 in the LETTERBOX IMAGE (640x640)
                 // --------------------------------------------------------------------------------
@@ -67,7 +89,7 @@ namespace YoloDetect.PreProcess
                     y1_orig,
                     x2_orig,
                     y2_orig,
-                    clsScore,
+                    maxScore,
                     maxClsIdx
                 ));
             }
@@ -174,7 +196,7 @@ namespace YoloDetect.PreProcess
         /// Output shape: [1, 300, 6] donde 6 = [x1, y1, x2, y2, score, class_id]
         /// </summary>
         public void PreproccessedOutputYolov26(DenseTensor<float>? output0, int padX, int padY, float r,
-            List<Detection> _Detections, float thresHold = 0.25f, int targetClass = 0)
+            List<Detection> _Detections, HashSet<int> targetClasses, float thresHold = 0.25f)
         {
             if (output0 is null)
                 return;
@@ -199,8 +221,8 @@ namespace YoloDetect.PreProcess
 
                 int classId = (int)buffer[offset + 5];
 
-                // Filtrar por clase si es necesario (0 = persona en COCO)
-                if (classId != targetClass)
+                // Filtrar por clases objetivo
+                if (targetClasses != null && !targetClasses.Contains(classId))
                     continue;
 
                 // Coordenadas ya en formato x1,y1,x2,y2 (esquinas) en espacio 640x640

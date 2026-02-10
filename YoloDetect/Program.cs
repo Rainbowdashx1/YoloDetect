@@ -100,6 +100,8 @@ internal class Program
         Console.WriteLine("7. Salir");
         Console.Write("\nSelecciona una opción: ");
 
+        HashSet<int> targetClasses = new HashSet<int> { 0 }; //Aqui poner el listado de clases a detectar - Solo personas (clase 0 en COCO)
+
         string? opcion = Console.ReadLine();
         bool Yolo26 = false;
 
@@ -133,7 +135,7 @@ internal class Program
                 return;
         }
 
-        Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, sourceType);
+        Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, targetClasses, sourceType);
 
         if (batch && Yolo26 == false)
             Cap.runWithModel2Batch(modelType);

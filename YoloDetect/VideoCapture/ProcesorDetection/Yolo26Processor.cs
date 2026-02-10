@@ -24,10 +24,11 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
         public void ProcessSingleBatch(
             DenseTensor<float>? output,
             int padX, int padY, float r,
-            List<Detection> detections)
+            List<Detection> detections,
+            HashSet<int> targetClasses)
         {
-            _preprocessed.PreproccessedOutputYolov26(output, padX, padY, r, detections,
-                thresHold: _threshold, targetClass: _targetClass);
+            _preprocessed.PreproccessedOutputYolov26(output, padX, padY, r, detections, targetClasses,
+                thresHold: _threshold);
         }
 
         public void ProcessDoubleBatch(
