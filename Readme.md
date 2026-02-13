@@ -57,6 +57,18 @@
 
 # Changelog
 
+## Version 1.0.12
+
+### StorageMethod Project Integration and Converter Refactor
+
+- Added a new **StorageMethod** project to the solution (**.NET 8**, `unsafe` enabled), including dependencies for **OpenCvSharp4** and **OnnxRuntime.Gpu**.
+- Introduced `TensorConverterSingle` and `TensorConverterBatch` inside **StorageMethod**, implementing multiple highly optimized Mat→Tensor (CHW) conversion strategies (e.g., `unsafe` memory access, SIMD/AVX2 variants, `ArrayPool` reuse, and parallel processing) for both single-image and batch pipelines.
+- Removed the optimized/parallel converter variants from the main project `TensorConverterSingle.cs` / `TensorConverterBatch.cs`, keeping only the **hybrid non-parallel** implementation and the internal **BGR→RGB** conversion routine to simplify maintenance.
+- Migrated all Mat→Tensor conversion usage to **StorageMethod** (updated references to `StorageMethod.Nvidia`), added the project reference to `BenchmarkMethods.csproj`, and removed `BenchResize` (file + benchmarks) including its execution entry in `Program.cs`.
+- Moved `ProcessFrame` from `YoloDetect.VideoCapture` to `StorageMethod.VideoCapture` and updated benchmark references accordingly. No functional changes—this is a structural reorganization for clearer project layout.
+
+- Goal: keep all conversion methods available (without deleting them) while centralizing them in **StorageMethod** to continue benchmarking and comparing which approach performs best.
+
 ## Version 1.0.11
 
 ### Target Class Filtering for YOLO Detection

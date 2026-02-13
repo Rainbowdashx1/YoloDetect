@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\StorageMethod\StorageMethod.csproj" />
     <ProjectReference Include="..\YoloDetect\YoloDetect.csproj" />
   </ItemGroup>
 
