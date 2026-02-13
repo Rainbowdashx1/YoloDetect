@@ -10,6 +10,5 @@ public class Program
         var summaryTensorBatch = BenchmarkRunner.Run<BenchTensorBatch>(config);
         var summaryTensorSingle = BenchmarkRunner.Run<BenchTensor>(config);
         var summaryLetter = BenchmarkRunner.Run<BenchLetterbox>(config);
-        var summaryResize = BenchmarkRunner.Run<BenchResize>(config);
     }
 }

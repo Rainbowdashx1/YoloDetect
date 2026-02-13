@@ -43,7 +43,7 @@ namespace BenchmarkMethods.BenchMarksModels
         {
             // Clonar para evitar modificar el original (BGR2RGB modifica in-place)
             using var clone = testMat640.Clone();
-            return TensorConverterSingle.MatToTensor(clone);
+            return StorageMethod.Nvidia.TensorConverterSingle.MatToTensor(clone);
         }
 
         [Benchmark]
@@ -51,7 +51,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> MatToTensorParallel_Current()
         {
             using var clone = testMat640.Clone();
-            return TensorConverterSingle.MatToTensorParallel(clone);
+            return StorageMethod.Nvidia.TensorConverterSingle.MatToTensorParallel(clone);
         }
 
         [Benchmark]
@@ -59,7 +59,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> MatToTensorUltraFast_SIMD()
         {
             using var clone = testMat640.Clone();
-            return TensorConverterSingle.MatToTensorUltraFast(clone);
+            return StorageMethod.Nvidia.TensorConverterSingle.MatToTensorUltraFast(clone);
         }
 
         [Benchmark]
@@ -67,7 +67,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> MatToTensorUnsafe_Pointers()
         {
             using var clone = testMat640.Clone();
-            return TensorConverterSingle.MatToTensorUnsafe(clone);
+            return StorageMethod.Nvidia.TensorConverterSingle.MatToTensorUnsafe(clone);
         }
 
         [Benchmark]
@@ -75,7 +75,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> MatToTensorHybrid_Best()
         {
             using var clone = testMat640.Clone();
-            return TensorConverterSingle.MatToTensorHybrid(clone);
+            return StorageMethod.Nvidia.TensorConverterSingle.MatToTensorHybrid(clone);
         }
 
         #endregion
@@ -89,7 +89,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> Parallel_NoClone()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            var result = TensorConverterSingle.MatToTensorParallel(mat);
+            var result = StorageMethod.Nvidia.TensorConverterSingle.MatToTensorParallel(mat);
             mat.Dispose();
             return result;
         }
@@ -99,7 +99,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> Hybrid_NoClone()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            var result = TensorConverterSingle.MatToTensorHybrid(mat);
+            var result = StorageMethod.Nvidia.TensorConverterSingle.MatToTensorHybrid(mat);
             mat.Dispose();
             return result;
         }
@@ -109,7 +109,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> UltraFast_NoClone()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            var result = TensorConverterSingle.MatToTensorUltraFast(mat);
+            var result = StorageMethod.Nvidia.TensorConverterSingle.MatToTensorUltraFast(mat);
             mat.Dispose();
             return result;
         }
@@ -119,7 +119,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> Unsafe_NoClone()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            var result = TensorConverterSingle.MatToTensorUnsafe(mat);
+            var result = StorageMethod.Nvidia.TensorConverterSingle.MatToTensorUnsafe(mat);
             mat.Dispose();
             return result;
         }
@@ -128,7 +128,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> Hybrid_NoCloneNoTensor()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            TensorConverterSingle.MatToTensorHybrid(mat, _reusableTensor);
+            StorageMethod.Nvidia.TensorConverterSingle.MatToTensorHybrid(mat, _reusableTensor);
             mat.Dispose();
             return _reusableTensor;
         }
@@ -137,7 +137,7 @@ namespace BenchmarkMethods.BenchMarksModels
         public DenseTensor<float> HybridNoParallel_NoClone()
         {
             var mat = new Mat(new Size(640, 640), MatType.CV_8UC3, new Scalar(100, 150, 200));
-            TensorConverterSingle.MatToTensorHybridNoParallel(mat, _reusableTensor);
+            StorageMethod.Nvidia.TensorConverterSingle.MatToTensorHybridNoParallel(mat, _reusableTensor);
             mat.Dispose();
             return _reusableTensor;
         }
