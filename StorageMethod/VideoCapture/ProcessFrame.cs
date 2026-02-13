@@ -1,0 +1,165 @@
+﻿using OpenCvSharp;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace StorageMethod.VideoCapture
+{
+    public class ProcessFrame
+    {
+        // Buffer reutilizable para evitar allocaciones repetidas
+        private Mat? _resizedBuffer;
+        private Size _lastResizedSize;
+        private readonly Scalar _borderColor = new Scalar(114, 114, 114); // Reutilizable
+
+        public record struct FrameTransform(
+            int PadX,
+            int PadY,
+            int padRight,
+            int padBottom,
+            int NewW,
+            int NewH,
+            Size newSize,
+            float? Ratio = null
+        )
+        {
+            public bool IsValid() => Ratio.HasValue;
+        };
+        FrameTransform Values = new FrameTransform();
+        /// <summary>
+        /// Método original de Letterbox
+        /// </summary>
+        public void Letterbox(Mat src, Mat dst, int dstW, int dstH, out float r, out int padX, out int padY)
+        {
+
+            int srcW = src.Width;
+            int srcH = src.Height;
+
+            r = Math.Min(dstW / (float)srcW, dstH / (float)srcH);
+            int newW = (int)Math.Floor(srcW * r);
+            int newH = (int)Math.Floor(srcH * r);
+
+            padX = (dstW - newW) / 2;
+            padY = (dstH - newH) / 2;
+
+            Mat resized = new Mat();
+            Cv2.Resize(src, resized, new OpenCvSharp.Size(newW, newH), interpolation: InterpolationFlags.Linear);
+
+            // Llenar dst con color de fondo
+            dst.SetTo(new Scalar(114, 114, 114));
+
+            var roi = new Rect(padX, padY, newW, newH);
+            resized.CopyTo(new Mat(dst, roi));
+
+            resized.Dispose();
+        }
+        /// <summary>
+        /// Letterbox optimizado usando CopyMakeBorder + FrameTransform + buffer reutilizable
+        /// </summary>
+        public FrameTransform LetterboxOptimized(Mat src, Mat dst, int dstW, int dstH)
+        {
+            FrameTransform cal = CalculateLetterboxValues(src, dstW, dstH);
+
+            if (_resizedBuffer == null || _lastResizedSize != cal.newSize)
+            {
+                _resizedBuffer?.Dispose();
+                _resizedBuffer = new Mat();
+                _lastResizedSize = cal.newSize;
+            }
+
+            Cv2.Resize(src, _resizedBuffer, cal.newSize, 0, 0, InterpolationFlags.Linear);
+            Cv2.CopyMakeBorder(
+                _resizedBuffer,
+                dst,
+                cal.PadY, cal.padBottom,
+                cal.PadX, cal.padRight,
+                BorderTypes.Constant,
+                new Scalar(114, 114, 114)
+            );
+
+            return cal;
+        }
+
+        /// <summary>
+        /// Letterbox optimizado usando CopyMakeBorder
+        /// </summary>
+        public void LetterboxOptimized(Mat src, Mat dst, int dstW, int dstH, out float r, out int padX, out int padY)
+        {
+            int srcW = src.Width;
+            int srcH = src.Height;
+
+            float rW = dstW / (float)srcW;
+            float rH = dstH / (float)srcH;
+            r = rW < rH ? rW : rH;
+
+            int newW = (int)(srcW * r);
+            int newH = (int)(srcH * r);
+
+            int totalPadX = dstW - newW;
+            int totalPadY = dstH - newH;
+            padX = totalPadX >> 1;
+            padY = totalPadY >> 1;
+            int padRight = totalPadX - padX;
+            int padBottom = totalPadY - padY;
+
+            if (_resizedBuffer == null || _lastResizedSize.Width != newW || _lastResizedSize.Height != newH)
+            {
+                _resizedBuffer?.Dispose();
+                _resizedBuffer = new Mat();
+                _lastResizedSize = new Size(newW, newH); ;
+            }
+
+            Cv2.Resize(src, _resizedBuffer, _lastResizedSize, 0, 0, InterpolationFlags.Linear);
+            Cv2.CopyMakeBorder(
+                _resizedBuffer,
+                dst,
+                padY, padBottom,
+                padX, padRight,
+                BorderTypes.Constant,
+                _borderColor
+            );
+        }
+
+        private FrameTransform CalculateLetterboxValues(Mat src, int dstW, int dstH)
+        {
+            if (Values.IsValid())
+            {
+                return Values;
+            }
+
+            float r;
+            int padX;
+            int padY;
+
+            int srcW = src.Width;
+            int srcH = src.Height;
+
+            float rW = dstW / (float)srcW;
+            float rH = dstH / (float)srcH;
+            r = rW < rH ? rW : rH;
+
+            int newW = (int)(srcW * r);
+            int newH = (int)(srcH * r);
+
+            int totalPadX = dstW - newW;
+            int totalPadY = dstH - newH;
+            padX = totalPadX >> 1;
+            padY = totalPadY >> 1;
+            int padRight = totalPadX - padX;
+            int padBottom = totalPadY - padY;
+
+            Values = new FrameTransform(padX, padY, padRight, padBottom, newW, newH, new Size(newW, newH), r);
+            return Values;
+        }
+        /// <summary>
+        /// Liberar recursos del buffer
+        /// </summary>
+        public void DisposeBuffers()
+        {
+            _resizedBuffer?.Dispose();
+            _resizedBuffer = null;
+        }
+    }
+}

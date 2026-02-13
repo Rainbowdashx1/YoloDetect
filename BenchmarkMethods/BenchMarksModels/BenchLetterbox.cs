@@ -2,7 +2,6 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Order;
 using OpenCvSharp;
-using YoloDetect.VideoCapture;
 
 namespace BenchmarkMethods.BenchMarksModels
 {
@@ -19,7 +18,7 @@ namespace BenchmarkMethods.BenchMarksModels
         private Mat testMat720p;
         private Mat testMat4K;
         private Mat letterboxBuffer;
-        private ProcessFrame processFrame;
+        private StorageMethod.VideoCapture.ProcessFrame processFrame;
 
         private const int TargetWidth = 640;
         private const int TargetHeight = 640;
@@ -35,7 +34,7 @@ namespace BenchmarkMethods.BenchMarksModels
             // Buffer pre-alocado para todos los métodos
             letterboxBuffer = new Mat(new Size(TargetWidth, TargetHeight), MatType.CV_8UC3);
             
-            processFrame = new ProcessFrame();
+            processFrame = new StorageMethod.VideoCapture.ProcessFrame();
         }
 
         [GlobalCleanup]
@@ -53,7 +52,7 @@ namespace BenchmarkMethods.BenchMarksModels
         [BenchmarkCategory("1080p")]
         public void Original_1080p()
         {
-            processFrame.Letterbox(testMat1080p, letterboxBuffer, TargetWidth, TargetHeight, out _, out _, out _);
+           processFrame.Letterbox(testMat1080p, letterboxBuffer, TargetWidth, TargetHeight, out _, out _, out _);
         }
 
         [Benchmark]
