@@ -41,10 +41,10 @@ namespace YoloDetect.VideoCapture
             letterboxBuffer = new Mat(new Size(640, 640), MatType.CV_8UC3);
             leftLetterboxBuffer = new Mat(new Size(640, 640), MatType.CV_8UC3);
             rightLetterboxBuffer = new Mat(new Size(640, 640), MatType.CV_8UC3);
-            _Detections = new List<Detection>();
-            _DetectionsLeft = new List<Detection>();
-            _DetectionsRight = new List<Detection>();
-            _DetectionUnion = new List<Detection>();
+            _Detections = new List<Detection>(capacity: 500);
+            _DetectionsLeft = new List<Detection>(capacity: 250);
+            _DetectionsRight = new List<Detection>(capacity: 250);
+            _DetectionUnion = new List<Detection>(capacity: 500);
             TargetClasses = targetClasses;
         }
         public void runWithModel1Batch(ModelType modelType)

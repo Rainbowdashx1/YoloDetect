@@ -18,15 +18,6 @@ namespace YoloDetect.Nvidia
         /// </summary>
         public static unsafe void MatToTensorHybridNoParallel(Mat mat, DenseTensor<float> tensor)
         {
-            if (mat.Channels() == 3)
-            {
-                Cv2.CvtColor(mat, mat, ColorConversionCodes.BGR2RGB);
-            }
-            else if (mat.Channels() == 4)
-            {
-                Cv2.CvtColor(mat, mat, ColorConversionCodes.BGRA2RGB);
-            }
-
             int height = mat.Rows;
             int width = mat.Cols;
             int planeSize = height * width;

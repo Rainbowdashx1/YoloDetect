@@ -57,6 +57,15 @@
 
 # Changelog
 
+## Version 1.1.0
+
+### .NET 10 Migration and Performance Optimizations
+
+- Updated the `TargetFramework` to **net10.0** across all projects and upgraded **OpenCvSharp4** to **v4.13.0**.
+- Improved performance in `Capture.cs` by **preallocating detection list capacity** to reduce reallocations.
+- Optimized `FrameRender.cs` by switching to a **`for` loop** and **reusing the overlay buffer**.
+- Removed the **color conversion step** in `TensorConverterSingle.cs`.
+
 ## Version 1.0.12
 
 ### StorageMethod Project Integration and Converter Refactor
