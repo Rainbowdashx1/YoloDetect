@@ -124,10 +124,10 @@ internal class Program
                 usingYolo11n2batch();
                 break;
             case "5":
-                usingYolo11n1batch();
+                usingYolo11n1batchBytetrack();
                 break;
             case "6":
-                usingYolo11n2batch();
+                usingYolo11n2batchBytetrack();
                 break;
             case "7":
                 usingYolo26n1batch();
@@ -156,7 +156,6 @@ internal class Program
                     Cap.runWithModel1Batch(modelType);
                 break;
             case ModelType.Yolo11Bytetrack:
-
                 if (batch)
                     Cap.runWithModel2BatchWithTracking(modelType);
                 else
@@ -196,6 +195,19 @@ internal class Program
         modelPath = yolo11n2batch;
         batch = true;
         modelType = ModelType.Yolo11;
+        Console.WriteLine("Usando modelo yolo11n 2 batch");
+    }
+    private static void usingYolo11n1batchBytetrack()
+    {
+        modelPath = yolo11n1batch;
+        modelType = ModelType.Yolo11Bytetrack;
+        Console.WriteLine("Usando modelo yolo11n 1 batch");
+    }
+    private static void usingYolo11n2batchBytetrack()
+    {
+        modelPath = yolo11n2batch;
+        batch = true;
+        modelType = ModelType.Yolo11Bytetrack;
         Console.WriteLine("Usando modelo yolo11n 2 batch");
     }
     private static void usingYolo26n1batch()
