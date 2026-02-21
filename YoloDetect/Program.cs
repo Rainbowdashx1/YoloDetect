@@ -147,18 +147,30 @@ internal class Program
 
         Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, targetClasses, sourceType);
 
-        if (batch && Yolo26 == false && (opcion != "5" && opcion != "6"))
-            Cap.runWithModel2Batch(modelType);
-        else if (!Yolo26 && (opcion != "5" && opcion != "6"))
-            Cap.runWithModel1Batch(modelType);
-        else if(Yolo26 == false && opcion == "5")
-            Cap.runWithModel1BatchWithTracking(modelType);
-        else if (batch && !Yolo26 && opcion == "6")
-            Cap.runWithModel2BatchWithTracking(modelType);
-        else if (Yolo26 && opcion != "8")
-            Cap.runWithModel1BatchYolo26(modelType);
-        else if (Yolo26 && opcion == "8")
-            Cap.runWithModel2BatchYolo26(modelType);
+        switch (modelType) 
+        {
+            case ModelType.Yolo11:
+                if (batch) 
+                    Cap.runWithModel2Batch(modelType);
+                else
+                    Cap.runWithModel1Batch(modelType);
+                break;
+            case ModelType.Yolo11Bytetrack:
+
+                if (batch)
+                    Cap.runWithModel2BatchWithTracking(modelType);
+                else
+                    Cap.runWithModel1BatchWithTracking(modelType);
+                break;
+            case ModelType.Yolo26:
+                if (batch)
+                    Cap.runWithModel2BatchYolo26(modelType);
+                else
+                    Cap.runWithModel1BatchYolo26(modelType);
+                break;
+            case ModelType.Yolo26Bytetrack:
+                break;
+        }
     }
     private static void usingYolo11m()
     {

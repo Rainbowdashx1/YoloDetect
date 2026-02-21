@@ -14,6 +14,8 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
             {
                 ModelType.Yolo11 => new Yolo11Processor(threshold),
                 ModelType.Yolo26 => new Yolo26Processor(threshold),
+                ModelType.Yolo11Bytrack => new Yolo11Processor(threshold),
+                ModelType.Yolo26Bytrack => new Yolo26Processor(threshold),
                 _ => throw new ArgumentException($"Modelo no soportado: {type}")
             };
         }
