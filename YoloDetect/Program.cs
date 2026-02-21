@@ -95,9 +95,13 @@ internal class Program
         Console.WriteLine("2. Procesar usando yolo11m 2 batch - two batch");
         Console.WriteLine("3. Procesar usando yolo11n 1 batch");
         Console.WriteLine("4. Procesar usando yolo11n 2 batch - two batch");
-        Console.WriteLine("5. Procesar usando yolo26n 1 batch");
-        Console.WriteLine("6. Procesar usando yolo26n 2 batch - two batch");
-        Console.WriteLine("7. Salir");
+
+        Console.WriteLine("5. Procesar usando yolo11n 1 batch - Bytetrack");
+        Console.WriteLine("6. Procesar usando yolo11n 2 batch - two batch - Bytetrack");
+
+        Console.WriteLine("7. Procesar usando yolo26n 1 batch");
+        Console.WriteLine("8. Procesar usando yolo26n 2 batch - two batch");
+        Console.WriteLine("9. Salir");
         Console.Write("\nSelecciona una opción: ");
 
         HashSet<int> targetClasses = new HashSet<int> { 0 }; //Aqui poner el listado de clases a detectar - Solo personas (clase 0 en COCO)
@@ -120,14 +124,20 @@ internal class Program
                 usingYolo11n2batch();
                 break;
             case "5":
+                usingYolo11n1batch();
+                break;
+            case "6":
+                usingYolo11n2batch();
+                break;
+            case "7":
                 usingYolo26n1batch();
                 Yolo26 = true;
                 break;
-            case "6":
+            case "8":
                 usingYolo26n2batch();
                 Yolo26 = true;
                 break;
-            case "7":
+            case "9":
                 Console.WriteLine("Saliendo...");
                 return;
             default:
@@ -137,13 +147,17 @@ internal class Program
 
         Capture Cap = new Capture(videoPath, videoProcessPath, modelPath, targetClasses, sourceType);
 
-        if (batch && Yolo26 == false)
+        if (batch && Yolo26 == false && (opcion != "5" && opcion != "6"))
             Cap.runWithModel2Batch(modelType);
-        else if (!Yolo26)
+        else if (!Yolo26 && (opcion != "5" && opcion != "6"))
             Cap.runWithModel1Batch(modelType);
-        else if (Yolo26 && opcion != "6")
+        else if(Yolo26 == false && opcion == "5")
+            Cap.runWithModel1BatchWithTracking(modelType);
+        else if (batch && !Yolo26 && opcion == "6")
+            Cap.runWithModel2BatchWithTracking(modelType);
+        else if (Yolo26 && opcion != "8")
             Cap.runWithModel1BatchYolo26(modelType);
-        else if (Yolo26 && opcion == "6")
+        else if (Yolo26 && opcion == "8")
             Cap.runWithModel2BatchYolo26(modelType);
     }
     private static void usingYolo11m()

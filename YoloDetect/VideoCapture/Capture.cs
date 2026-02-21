@@ -1,4 +1,5 @@
-﻿using Microsoft.ML.OnnxRuntime.Tensors;
+﻿using ByteTrack;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
 using YoloDetect.Nvidia;
 using YoloDetect.PreProcess;
@@ -26,6 +27,13 @@ namespace YoloDetect.VideoCapture
         private List<Detection> _DetectionsRight;
         private List<Detection> _DetectionUnion;
 
+        // Buffers para STracks
+        private List<STrack> _STracks;
+        private List<STrack> _STracksLeft;
+        private List<STrack> _STracksRight;
+        private List<STrack> _STrackUnion;
+
+
         private HashSet<int> TargetClasses;
         public Capture(string videoPath, string? videoProcessPath, string modelPath, HashSet<int> targetClasses, VideoSourceType? preferredSourceType = null) 
         {
@@ -45,6 +53,13 @@ namespace YoloDetect.VideoCapture
             _DetectionsLeft = new List<Detection>(capacity: 250);
             _DetectionsRight = new List<Detection>(capacity: 250);
             _DetectionUnion = new List<Detection>(capacity: 500);
+
+            // Buffers para STracks
+            _STracks = new List<STrack>(capacity: 500);
+            _STracksLeft = new List<STrack>(capacity: 250);
+            _STracksRight = new List<STrack>(capacity: 250);
+            _STrackUnion = new List<STrack>(capacity: 500);
+
             TargetClasses = targetClasses;
         }
         public void runWithModel1Batch(ModelType modelType)
@@ -86,6 +101,51 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
+        public void runWithModel1BatchWithTracking(ModelType modelType, int frameRate = 30, int trackBuffer = 30)
+        {
+            processor = ProcessorFactory.Create(modelType);
+            var tracker = new BYTETracker(frameRate, trackBuffer);
+
+            using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
+            using var videoWriter = CreateVideoWriter(videoSource);
+
+            try
+            {
+                Mat frame = new Mat();
+                int currentFrame = 0;
+                int skippedFrames = 0;
+
+                while (videoSource.Read(frame))
+                {
+                    currentFrame++;
+                    if (frame.Empty())
+                    {
+                        skippedFrames++;
+                        continue;
+                    }
+
+                    ProcessFrameToSTracks(frame);
+
+                    // Actualizar tracker con las nuevas detecciones
+                    var trackedSTracks = tracker.Update(_STracks);
+
+                    frameRender.DrawSTracksWithIds(frame, trackedSTracks);
+
+                    videoWriter?.Write(frame);
+                    Cv2.ImShow("Cuadro Actual con Tracking", frame);
+
+                    if (Cv2.WaitKey(1) >= 0)
+                        break;
+                }
+
+                Console.WriteLine($"Frames procesados: {currentFrame}, Frames saltados: {skippedFrames}");
+                Cv2.DestroyAllWindows();
+            }
+            finally
+            {
+                videoWriter?.Dispose();
+            }
+        }
         public void runWithModel2Batch(ModelType modelType)
         {
             processor = ProcessorFactory.Create(modelType);
@@ -112,6 +172,51 @@ namespace YoloDetect.VideoCapture
                     videoWriter?.Write(frame);
                     Cv2.ImShow("Cuadro Actual", frame);
                     
+                    if (Cv2.WaitKey(1) >= 0)
+                        break;
+                }
+
+                Console.WriteLine($"Frames procesados: {currentFrame}, Frames saltados: {skippedFrames}");
+                Cv2.DestroyAllWindows();
+            }
+            finally
+            {
+                videoWriter?.Dispose();
+            }
+        }
+        public void runWithModel2BatchWithTracking(ModelType modelType, int frameRate = 30, int trackBuffer = 30)
+        {
+            processor = ProcessorFactory.Create(modelType);
+            var tracker = new BYTETracker(frameRate, trackBuffer);
+
+            using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
+            using var videoWriter = CreateVideoWriter(videoSource);
+
+            try
+            {
+                Mat frame = new Mat();
+                int currentFrame = 0;
+                int skippedFrames = 0;
+
+                while (videoSource.Read(frame))
+                {
+                    currentFrame++;
+                    if (frame.Empty())
+                    {
+                        skippedFrames++;
+                        continue;
+                    }
+
+                    ProcessFrameBatchOverLapToSTracks(frame);
+
+                    // Actualizar tracker con las nuevas detecciones
+                    var trackedSTracks = tracker.Update(_STrackUnion);
+
+                    frameRender.DrawSTracksWithIds(frame, trackedSTracks);
+
+                    videoWriter?.Write(frame);
+                    Cv2.ImShow("Cuadro Actual con Tracking", frame);
+
                     if (Cv2.WaitKey(1) >= 0)
                         break;
                 }
@@ -234,6 +339,27 @@ namespace YoloDetect.VideoCapture
             _Detections.Clear();
             processor.ProcessSingleBatch(output0, padX, padY, r, _Detections, TargetClasses);
         }
+        private void ProcessFrameToSTracks(Mat frame)
+        {
+            float r;
+            int padX, padY;
+            process.LetterboxOptimized(frame, letterboxBuffer, 640, 640, out r, out padX, out padY);
+            DenseTensor<float>? output0 = session.SessionRun(letterboxBuffer);
+            _Detections.Clear();
+            processor.ProcessSingleBatch(output0, padX, padY, r, _Detections, TargetClasses);
+
+            // Convertir detecciones a STracks
+            _STracks.Clear();
+            foreach (var det in _Detections)
+            {
+                float x = det.X1;
+                float y = det.Y1;
+                float w = det.X2 - det.X1;
+                float h = det.Y2 - det.Y1;
+                float[] tlwh = new float[] { x, y, w, h };
+                _STracks.Add(new STrack(tlwh, det.Score, det.X2, det.Y2));
+            }
+        }
         private void ProcessFrameBatchOverLap(Mat frame)
         {
             int overlapPixels = 150; // Solapamiento configurable
@@ -285,6 +411,70 @@ namespace YoloDetect.VideoCapture
                 halfWidth - overlapPixels,
                 halfWidth + overlapPixels
             );
+        }
+        private void ProcessFrameBatchOverLapToSTracks(Mat frame)
+        {
+            int overlapPixels = 150;
+            int halfWidth = frame.Width / 2;
+
+            int leftWidth = halfWidth + overlapPixels;
+            int rightStart = halfWidth - overlapPixels;
+            int rightWidth = frame.Width - rightStart;
+
+            using Mat leftRegion = new Mat(frame, new Rect(0, 0, leftWidth, frame.Height));
+            using Mat rightRegion = new Mat(frame, new Rect(rightStart, 0, rightWidth, frame.Height));
+
+            float r1, r2;
+            int padX1, padY1, padX2, padY2;
+
+            process.LetterboxOptimized(leftRegion, leftLetterboxBuffer, 640, 640, out r1, out padX1, out padY1);
+            process.LetterboxOptimized(rightRegion, rightLetterboxBuffer, 640, 640, out r2, out padX2, out padY2);
+
+            _DetectionsRight.Clear();
+            _DetectionsLeft.Clear();
+
+            DenseTensor<float>? outputSession = session.SessionRunBatch(leftLetterboxBuffer, rightLetterboxBuffer);
+            processor.ProcessDoubleBatch(
+                outputSession,
+                _DetectionsRight,
+                _DetectionsLeft,
+                padX1, padY1, r1,
+                padX2, padY2, r2
+            );
+
+            for (int i = 0; i < _DetectionsRight.Count; i++)
+            {
+                var det = _DetectionsRight[i];
+                _DetectionsRight[i] = new Detection(
+                    det.X1 + rightStart,
+                    det.Y1,
+                    det.X2 + rightStart,
+                    det.Y2,
+                    det.Score,
+                    det.ClassId
+                );
+            }
+
+            _DetectionUnion.Clear();
+            MergeOverlappingDetections(
+                _DetectionsLeft,
+                _DetectionsRight,
+                _DetectionUnion,
+                halfWidth - overlapPixels,
+                halfWidth + overlapPixels
+            );
+
+            // Convertir detecciones unificadas a STracks
+            _STrackUnion.Clear();
+            foreach (var det in _DetectionUnion)
+            {
+                float x = det.X1;
+                float y = det.Y1;
+                float w = det.X2 - det.X1;
+                float h = det.Y2 - det.Y1;
+                float[] tlwh = new float[] { x, y, w, h };
+                _STrackUnion.Add(new STrack(tlwh, det.Score, det.X2, det.Y2));
+            }
         }
         private void MergeOverlappingDetections(
             List<Detection> leftDetections,

@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\ByteTrack\ByteTrack\ByteTrack.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="FFmpeg\ffmpeg.rar">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

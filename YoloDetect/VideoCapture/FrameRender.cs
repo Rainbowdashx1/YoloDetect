@@ -1,4 +1,5 @@
-﻿using OpenCvSharp;
+﻿using ByteTrack;
+using OpenCvSharp;
 using YoloDetect.PreProcess;
 
 namespace YoloDetect.VideoCapture
@@ -72,6 +73,34 @@ namespace YoloDetect.VideoCapture
             Cv2.PutText(frame, counterText,
                 new OpenCvSharp.Point(boxX + padding, boxY + textSize.Height + padding),
                 (HersheyFonts)fontFace, fontScale, new Scalar(0, 255, 0), thickness);
+        }
+        public void DrawSTracksWithIds(Mat frame, List<STrack> stracks)
+        {
+            foreach (var track in stracks)
+            {
+                if (track.tlbr == null || track.tlbr.Length < 4)
+                    continue;
+
+                int x1 = (int)track.tlbr[0];
+                int y1 = (int)track.tlbr[1];
+                int x2 = (int)track.tlbr[2];
+                int y2 = (int)track.tlbr[3];
+
+                // Color diferente según el estado del track
+                Scalar color = track.state switch
+                {
+                    TrackState.Tracked => Scalar.Green,
+                    TrackState.New => Scalar.Yellow,
+                    TrackState.Lost => Scalar.Red,
+                    _ => Scalar.Gray
+                };
+
+                Cv2.Rectangle(frame, new Point(x1, y1), new Point(x2, y2), color, 2);
+
+                string trackText = $"ID:{track.track_id} {track.score:F2}";
+                Cv2.PutText(frame, trackText, new Point(x1, y1 - 5),
+                    HersheyFonts.HersheySimplex, 0.5, color, 2);
+            }
         }
     }
 }
