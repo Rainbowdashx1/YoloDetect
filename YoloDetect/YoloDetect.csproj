@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ByteTrack\ByteTrack\ByteTrack.csproj" />
+    <ProjectReference Include="..\ByteTrack\ByteTrack.csproj" />
   </ItemGroup>
 
   <ItemGroup>
