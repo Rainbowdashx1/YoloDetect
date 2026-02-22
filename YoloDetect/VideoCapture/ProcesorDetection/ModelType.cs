@@ -9,6 +9,8 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
     public enum ModelType
     {
         Yolo11,
-        Yolo26
+        Yolo26,
+        Yolo11Bytetrack,
+        Yolo26Bytetrack
     }
 }

@@ -57,6 +57,27 @@
 
 # Changelog
 
+## Version 1.2.0
+
+### ByteTrack Integration and Model Variant Refactor
+
+- Added **ByteTrack-based tracking** support for **YOLO11n** in both **1-batch and 2-batch** modes, including:
+  - Reusable tracking buffers and **detection → STrack** conversion inside `Capture`.
+  - Track **ID rendering** and **track state visualization** in `FrameRender`.
+  - Updated the **main menu** and **execution flow** to expose the new tracking options.
+  - Added a reference to the **ByteTrack** project in `YoloDetect.csproj`.
+
+- Refactored model selection by replacing nested conditionals with a **`switch` over `ModelType`** in `Program.cs` for improved clarity and maintainability.
+
+- Extended `ModelType` with explicit tracking variants:
+  - Added `Yolo11Bytetrack` and `Yolo26Bytetrack`.
+  - Updated `ProcessorFactory` to support these new types, enabling **explicit model management** for configurations **with and without ByteTrack**.
+
+- Improved menu and naming consistency:
+  - Added dedicated menu methods for **YOLO11 + ByteTrack** (1-batch and 2-batch).
+  - Removed direct tracking execution from the `switch`, keeping execution flow centralized via menu options.
+  - Fixed and standardized model type names in `ProcessorFactory` to ensure consistency across the pipeline.
+
 ## Version 1.1.0
 
 ### .NET 10 Migration and Performance Optimizations
