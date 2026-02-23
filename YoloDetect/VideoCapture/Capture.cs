@@ -268,6 +268,51 @@ namespace YoloDetect.VideoCapture
                 videoWriter?.Dispose();
             }
         }
+        public void runWithModel1BatchYolo26Bytetrack(ModelType modelType, int frameRate = 30, int trackBuffer = 30)
+        {
+            processor = ProcessorFactory.Create(modelType);
+            var tracker = new BYTETracker(frameRate, trackBuffer);
+
+            using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
+            using var videoWriter = CreateVideoWriter(videoSource);
+
+            try
+            {
+                Mat frame = new Mat();
+                int currentFrame = 0;
+                int skippedFrames = 0;
+
+                while (videoSource.Read(frame))
+                {
+                    currentFrame++;
+                    if (frame.Empty())
+                    {
+                        skippedFrames++;
+                        continue;
+                    }
+
+                    ProcessFrameToSTracks(frame);
+
+                    // Actualizar tracker con las nuevas detecciones
+                    var trackedSTracks = tracker.Update(_STracks);
+
+                    frameRender.DrawSTracksWithIds(frame, trackedSTracks);
+
+                    videoWriter?.Write(frame);
+                    Cv2.ImShow("Cuadro Actual con Tracking", frame);
+
+                    if (Cv2.WaitKey(1) >= 0)
+                        break;
+                }
+
+                Console.WriteLine($"Frames procesados: {currentFrame}, Frames saltados: {skippedFrames}");
+                Cv2.DestroyAllWindows();
+            }
+            finally
+            {
+                videoWriter?.Dispose();
+            }
+        }
         public void runWithModel2BatchYolo26(ModelType modelType)
         {
             processor = ProcessorFactory.Create(modelType);
@@ -294,6 +339,51 @@ namespace YoloDetect.VideoCapture
 
                     videoWriter?.Write(frame);
                     Cv2.ImShow("Cuadro Actual", frame);
+
+                    if (Cv2.WaitKey(1) >= 0)
+                        break;
+                }
+
+                Console.WriteLine($"Frames procesados: {currentFrame}, Frames saltados: {skippedFrames}");
+                Cv2.DestroyAllWindows();
+            }
+            finally
+            {
+                videoWriter?.Dispose();
+            }
+        }
+        public void runWithModel2BatchYolo26ByteTrack(ModelType modelType, int frameRate = 30, int trackBuffer = 30)
+        {
+            processor = ProcessorFactory.Create(modelType);
+            var tracker = new BYTETracker(frameRate, trackBuffer);
+
+            using var videoSource = VideoSourceFactory.Create(videoPath, preferredSourceType, lowLatency: true);
+            using var videoWriter = CreateVideoWriter(videoSource);
+
+            try
+            {
+                Mat frame = new Mat();
+                int currentFrame = 0;
+                int skippedFrames = 0;
+
+                while (videoSource.Read(frame))
+                {
+                    currentFrame++;
+                    if (frame.Empty())
+                    {
+                        skippedFrames++;
+                        continue;
+                    }
+
+                    ProcessFrameBatchOverLapToSTracks(frame);
+
+                    // Actualizar tracker con las nuevas detecciones
+                    var trackedSTracks = tracker.Update(_STrackUnion);
+
+                    frameRender.DrawSTracksWithIds(frame, trackedSTracks);
+
+                    videoWriter?.Write(frame);
+                    Cv2.ImShow("Cuadro Actual con Tracking", frame);
 
                     if (Cv2.WaitKey(1) >= 0)
                         break;

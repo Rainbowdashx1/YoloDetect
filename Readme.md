@@ -57,6 +57,16 @@
 
 # Changelog
 
+## Version 1.2.1
+
+### YOLO26n ByteTrack Support (1-Batch and 2-Batch)
+
+- Added **menu options** to process videos using **YOLO26n + ByteTrack** in both **1-batch** and **2-batch** modes.
+- Implemented the required execution methods in `Program.cs` and `Capture.cs`, integrating `BYTETracker` for:
+  - Object tracking
+  - **Track ID visualization** on rendered frames
+- Preserved existing behavior for **saving output** and **displaying processed frames** during execution.
+
 ## Version 1.2.0
 
 ### ByteTrack Integration and Model Variant Refactor

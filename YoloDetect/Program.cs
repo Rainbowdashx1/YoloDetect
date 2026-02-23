@@ -95,13 +95,14 @@ internal class Program
         Console.WriteLine("2. Procesar usando yolo11m 2 batch - two batch");
         Console.WriteLine("3. Procesar usando yolo11n 1 batch");
         Console.WriteLine("4. Procesar usando yolo11n 2 batch - two batch");
-
         Console.WriteLine("5. Procesar usando yolo11n 1 batch - Bytetrack");
         Console.WriteLine("6. Procesar usando yolo11n 2 batch - two batch - Bytetrack");
-
         Console.WriteLine("7. Procesar usando yolo26n 1 batch");
         Console.WriteLine("8. Procesar usando yolo26n 2 batch - two batch");
-        Console.WriteLine("9. Salir");
+        Console.WriteLine("9. Procesar usando yolo26n 1 batch - Bytetrack");
+        Console.WriteLine("10. Procesar usando yolo26n 2 batch - two batch - Bytetrack");
+
+        Console.WriteLine("11. Salir");
         Console.Write("\nSelecciona una opción: ");
 
         HashSet<int> targetClasses = new HashSet<int> { 0 }; //Aqui poner el listado de clases a detectar - Solo personas (clase 0 en COCO)
@@ -138,6 +139,14 @@ internal class Program
                 Yolo26 = true;
                 break;
             case "9":
+                usingYolo26n1batchBytetrack();
+                Yolo26 = true;
+                break;
+            case "10":
+                usingYolo26n2batchBytetrack();
+                Yolo26 = true;
+                break;
+            case "11":
                 Console.WriteLine("Saliendo...");
                 return;
             default:
@@ -168,6 +177,10 @@ internal class Program
                     Cap.runWithModel1BatchYolo26(modelType);
                 break;
             case ModelType.Yolo26Bytetrack:
+                if (batch)
+                    Cap.runWithModel2BatchYolo26ByteTrack(modelType);
+                else
+                    Cap.runWithModel1BatchYolo26Bytetrack(modelType);
                 break;
         }
     }
@@ -216,11 +229,24 @@ internal class Program
         modelType = ModelType.Yolo26;
         Console.WriteLine("Usando modelo yolo26n 1 batch");
     }
+    private static void usingYolo26n1batchBytetrack()
+    {
+        modelPath = yolo26n1batch;
+        modelType = ModelType.Yolo26Bytetrack;
+        Console.WriteLine("Usando modelo yolo26n 1 batch con ByteTrack");
+    }
     private static void usingYolo26n2batch()
     {
         modelPath = yolo26n2batch;
         modelType = ModelType.Yolo26;
         batch = true;
         Console.WriteLine("Usando modelo yolo26n 2 batch");
+    }
+    private static void usingYolo26n2batchBytetrack()
+    {
+        modelPath = yolo26n2batch;
+        modelType = ModelType.Yolo26Bytetrack;
+        batch = true;
+        Console.WriteLine("Usando modelo yolo26n 2 batch con ByteTrac");
     }
 }
