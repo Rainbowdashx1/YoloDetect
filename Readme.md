@@ -57,6 +57,17 @@
 
 # Changelog
 
+## Version 1.3.0
+
+### Dynamic ONNX Class Loading and Interactive Target Selection (1-Batch)
+
+- Added `ModelMetadataReader` to extract **class names and model metadata** directly from ONNX files, supporting multiple metadata formats.
+- Introduced an **interactive console workflow** to select which classes to detect at runtime:
+  - Displays detailed model information before execution
+  - Lists available classes for user selection
+- Removed the fixed `targetClasses` definition and moved to a **dynamic, user-driven configuration** step prior to detection.
+- Current limitation: **supported only in 1-batch mode** for now.
+
 ## Version 1.2.1
 
 ### YOLO26n ByteTrack Support (1-Batch and 2-Batch)
