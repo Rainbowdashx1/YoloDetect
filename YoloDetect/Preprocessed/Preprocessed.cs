@@ -105,6 +105,7 @@ namespace YoloDetect.PreProcess
         List<Detection> DetectionLeft,
         int padX1, int padY1, float r1,
         int padX2, int padY2, float r2,
+        HashSet<int> targetClasses,
         bool nonMaxSuppression = true,
         float nonMaxSuppressionThreshold = 0.45f,
         float thresHold = 0.25f)
@@ -118,6 +119,7 @@ namespace YoloDetect.PreProcess
             int channels = dims[1];  // 84 para YOLO11
             int numPreds = dims[2];  // 8400 típicamente
             int stride = channels * numPreds;
+            int numClasses = channels - 4; // N clases
 
             int batch = dims[0];
             int maxClsIdx = 4;
@@ -144,9 +146,24 @@ namespace YoloDetect.PreProcess
             // Procesar ambas imágenes en un solo loop
             for (int i = 0; i < numPreds; i++)
             {
+                float maxScore0 = 0f;
+                int maxClsIdx0 = 0;
+                foreach (int classId in targetClasses)
+                {
+                    if (classId >= numClasses)
+                        continue;
+
+                    // Leer el score de esta clase específica
+                    float score = buffer[offsetScore + classId * numPreds + i];
+                    if (score > maxScore0)
+                    {
+                        maxScore0 = score;
+                        maxClsIdx0 = classId;
+                    }
+                }
+
                 // Procesar imagen izquierda (batch 0)
-                float clsScore0 = buffer[offsetScore + i];
-                if (clsScore0 >= thresHold)
+                if (maxScore0 >= thresHold)
                 {
                     float xCenter = buffer[offsetX + i];
                     float yCenter = buffer[offsetY + i];
@@ -158,16 +175,31 @@ namespace YoloDetect.PreProcess
                         (yCenter - halfH - padY1) * invR1,
                         (xCenter + halfW - padX1) * invR1,
                         (yCenter + halfH - padY1) * invR1,
-                        clsScore0,
-                        maxClsIdx
+                        maxScore0,
+                        maxClsIdx0
                     ));
                 }
 
                 // Procesar imagen derecha (batch 1)
                 int batch1Offset = stride;
+                float maxScore1 = 0f;
+                int maxClsIdx1 = 0;
 
-                float clsScore1 = buffer[batch1Offset + offsetScore + i];
-                if (clsScore1 >= thresHold)
+                foreach (int classId in targetClasses)
+                {
+                    if (classId >= numClasses)
+                        continue;
+
+                    // Leer el score de esta clase específica en el batch 1
+                    float score = buffer[batch1Offset + offsetScore + classId * numPreds + i];
+                    if (score > maxScore1)
+                    {
+                        maxScore1 = score;
+                        maxClsIdx1 = classId;
+                    }
+                }
+
+                if (maxScore1 >= thresHold)
                 {
                     float xCenter = buffer[batch1Offset + offsetX + i];
                     float yCenter = buffer[batch1Offset + offsetY + i];
@@ -179,8 +211,8 @@ namespace YoloDetect.PreProcess
                         (yCenter - halfH - padY2) * invR2,
                         (xCenter + halfW - padX2) * invR2,
                         (yCenter + halfH - padY2) * invR2,
-                        clsScore1,
-                        maxClsIdx
+                        maxScore1,
+                        maxClsIdx1
                     ));
                 }
             }
@@ -256,8 +288,8 @@ namespace YoloDetect.PreProcess
             List<Detection> DetectionLeft,
             int padX1, int padY1, float r1,
             int padX2, int padY2, float r2,
-            float thresHold = 0.25f,
-            int targetClass = 0)
+            HashSet<int> targetClasses,
+            float thresHold = 0.25f)
         {
             if (output0 is null)
                 return;
@@ -287,7 +319,7 @@ namespace YoloDetect.PreProcess
                 if (score0 >= thresHold)
                 {
                     int classId0 = (int)buffer[offset + 5];
-                    if (classId0 == targetClass)
+                    if (targetClasses.Contains(classId0))
                     {
                         // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
                         float x1_640 = buffer[offset + 0];
@@ -313,7 +345,7 @@ namespace YoloDetect.PreProcess
                 if (score1 >= thresHold)
                 {
                     int classId1 = (int)buffer[batch1Offset + 5];
-                    if (classId1 == targetClass)
+                    if (targetClasses.Contains(classId1))
                     {
                         // Coordenadas ya en formato x1,y1,x2,y2 en espacio 640x640
                         float x1_640 = buffer[batch1Offset + 0];

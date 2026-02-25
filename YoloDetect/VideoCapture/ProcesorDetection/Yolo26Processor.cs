@@ -12,13 +12,11 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
     {
         private readonly Preprocessed _preprocessed;
         private readonly float _threshold;
-        private readonly int _targetClass;
 
-        public Yolo26Processor(float threshold = 0.25f, int targetClass = 0)
+        public Yolo26Processor(float threshold = 0.25f)
         {
             _preprocessed = new Preprocessed();
             _threshold = threshold;
-            _targetClass = targetClass;
         }
 
         public void ProcessSingleBatch(
@@ -36,13 +34,15 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
             List<Detection> leftDetections,
             List<Detection> rightDetections,
             int padX1, int padY1, float r1,
-            int padX2, int padY2, float r2)
+            int padX2, int padY2, float r2,
+            HashSet<int> targetClasses)
         {
             _preprocessed.PreproccessedOutputBatchOptimizedYolov26(output,
                 leftDetections, rightDetections,
                 padX1, padY1, r1,
                 padX2, padY2, r2,
-                thresHold: _threshold, targetClass: _targetClass);
+                targetClasses,
+                thresHold: _threshold);
         }
     }
 }

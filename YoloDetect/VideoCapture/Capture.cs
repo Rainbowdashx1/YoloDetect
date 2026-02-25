@@ -477,7 +477,8 @@ namespace YoloDetect.VideoCapture
                 _DetectionsRight,
                 _DetectionsLeft,
                 padX1, padY1, r1,
-                padX2, padY2, r2
+                padX2, padY2, r2,
+                TargetClasses
             );
   
             for (int i = 0; i < _DetectionsRight.Count; i++)
@@ -529,7 +530,8 @@ namespace YoloDetect.VideoCapture
                 _DetectionsRight,
                 _DetectionsLeft,
                 padX1, padY1, r1,
-                padX2, padY2, r2
+                padX2, padY2, r2,
+                TargetClasses
             );
 
             for (int i = 0; i < _DetectionsRight.Count; i++)

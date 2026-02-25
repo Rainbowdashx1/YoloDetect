@@ -36,12 +36,14 @@ namespace YoloDetect.VideoCapture.ProcesorDetection
             List<Detection> leftDetections,
             List<Detection> rightDetections,
             int padX1, int padY1, float r1,
-            int padX2, int padY2, float r2)
+            int padX2, int padY2, float r2, 
+            HashSet<int> targetClasses)
         {
             _preprocessed.PreproccessedOutputBatchOptimized(output,
                 leftDetections, rightDetections,
                 padX1, padY1, r1,
                 padX2, padY2, r2,
+                targetClasses,
                 thresHold: _threshold, nonMaxSuppressionThreshold: _nmsThreshold);
         }
     }

@@ -57,6 +57,15 @@
 
 # Changelog
 
+## Version 1.3.1
+
+### Multi-Class Target Filtering for Detection (2-Batch)
+
+- Replaced the `targetClass` (`int`) parameter with `HashSet<int> targetClasses` in **2-batch** detection post-processing, enabling filtering of **multiple classes simultaneously**.
+- Updated method signatures and call sites across the **2-batch pipeline** (including **interfaces** and **processors**) to accept the new `targetClasses` parameter.
+- Removed `targetClass` from `Yolo26Processor`.
+- Improved overall flexibility when filtering detection results by **multiple target classes** in **2-batch** mode.
+
 ## Version 1.3.0
 
 ### Dynamic ONNX Class Loading and Interactive Target Selection (1-Batch)
